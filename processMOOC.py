@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 __author__ = 'IH'
-__project__ = 'processDALMOOC'
+__project__ = 'processMOOC'
 
 import sys
 import fileinput
 import datetime
 from collections import defaultdict
-from QHInstance import QuickHelperInstance
+from QHInstance import QHInstance
 
 # LOGFILE NAMES
 FILENAME_HELPERLOG = "helper"
@@ -54,8 +54,9 @@ dict_sentence = {}
 dict_voting = {}
 dict_user_id = {}
 
-dict_num_helpers = {}
-list_all_instances = {}
+dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
+dict_all_instances = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
+list_no_duplicates = []  # a list of instances with duplicates removed
 
 # TODO: command line input for column delimiters
 
@@ -69,12 +70,16 @@ def main():
     proc_helper()
     proc_vote()
 
+    # user.log has to be treated differently and written at the end
+    # we need information from selection.log to write it properly
     file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
-    file_out.write(QuickHelperInstance.get_headers(CONST_DELIMITER)+"\n")
-    for qh_instance in list_all_instances:
+    file_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
+    remove_duplicates()
+    for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
-        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
-        line = qh_instance.to_string(CONST_DELIMITER)
+        iid = getattr(qh_instance, 'instance_id')
+        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(iid, 0))
+        line = qh_instance.to_string(delimiter=CONST_DELIMITER)
         file_out.write(line+'\n')
     file_out.close()
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE)
@@ -86,9 +91,6 @@ ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMIT
 Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
 '''
 def proc_user():
-    file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write(QuickHelperInstance.get_headers(CONST_DELIMITER)+'\n')
-
     with open(FILENAME_USERLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
             line = line[len(CONST_LINESTART): len(line)]   # Cut off the extra chars from beginning
@@ -110,26 +112,30 @@ def proc_user():
             col_ques_body = array_line[11]
             col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
             col_time = get_time(array_line[len(array_line) - 1])
-            user_instance = QuickHelperInstance(col_helper_id, col_instance_id, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_user_id,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body,col_date, col_time)
-            line = user_instance.to_string(CONST_DELIMITER)
-            list_all_instances.append(user_instance)
+            user_instance = QHInstance(col_helper_id, col_instance_id, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_user_id,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body,col_date, col_time)
 
-            # only write line if it's not a duplicate
-            # AND if it's during the right time period
+            # keeping track of instances for printing late (if in correct date range)
+            # store instance if it's during the right time period
             # AND if it's not one of the researchers' actions
             # AND only if the message body is longer than __ characters.
-            # NOTE: add_qh_instance() has to be first in this line, must be called each time!
-            if add_qh_instance(col_instance_id,col_badge_shown, col_irrelevant_sentence, col_voting, col_user_id) and is_during_course(col_date) and not is_researcher(col_user_id) and len(col_ques_body)>10:
-                file_out.write(line+'\n')
+            if is_during_course(col_date) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
+                dict_all_instances[user_instance.get_duplicate_key()].append(user_instance)
+                # TODO: Because we're using a dict here, we lose all timestamp ordering
+
+            # all duplicates get added to our condition dictionaries
+            # since helper.log needs it (i.e., the first entry isn't
+            # always the one that was shown!
+            dict_badge[col_instance_id] = col_badge_shown
+            dict_sentence[col_instance_id] = col_irrelevant_sentence
+            dict_voting[col_instance_id] = col_voting
+            dict_user_id[col_instance_id] = col_user_id
 
             # Add helper IDs to dictionary of instances to helpers
             dict_helpers[col_instance_id].append(col_helper0)
             dict_helpers[col_instance_id].append(col_helper1)
             dict_helpers[col_instance_id].append(col_helper2)
-            #print(line)
+            #print(user_instance.to_string(delimiter=CONST_DELIMITER))
     print("Done processing "+FILENAME_USERLOG+EXTENSION_LOGFILE)
-    file_out.close()
-    print("\tNumber of Repeats: " + str(count_repeat))
 
 '''
 A line in the Helperfile Log represents all the information specific to the helper that the user saw.
@@ -137,7 +143,7 @@ A line in the Helperfile Log represents all the information specific to the help
 '''
 def proc_helper():
     file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write("HelperUserID"+CONST_DELIMITER+"QuickHelperInstanceID"+CONST_DELIMITER+"HelperUsername"+CONST_DELIMITER+"badgeStarsShown"+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+"numWeeks"+CONST_DELIMITER+"topicMatch"+CONST_DELIMITER+"recommenderSentence"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time" + CONST_DELIMITER + "wasSelected" + CONST_DELIMITER + "isBadgeCondition" + CONST_DELIMITER + "isIrrelevantSentenceCondition" + CONST_DELIMITER + "isVotingCondition" + CONST_DELIMITER + "isUserIDCondition\n")
+    file_out.write("HelperUserID"+CONST_DELIMITER+"QHInstanceID"+CONST_DELIMITER+"HelperUsername"+CONST_DELIMITER+"badgeStarsShown"+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+"numWeeks"+CONST_DELIMITER+"topicMatch"+CONST_DELIMITER+"recommenderSentence"+CONST_DELIMITER+"irrelevantSentence"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time" + CONST_DELIMITER + "wasSelected" + CONST_DELIMITER + "isBadgeCondition" + CONST_DELIMITER + "isIrrelevantSentenceCondition" + CONST_DELIMITER + "isVotingCondition" + CONST_DELIMITER + "isUserIDCondition\n")
 
     with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
         for line in f:
@@ -152,11 +158,17 @@ def proc_helper():
             col_badge_shown = get_badge_stars(array_line[3])
             col4 = array_line[4]
             col_rec_sentence = array_line[5]
+            col_irrel_sentence = "unknown"  # This was missing in the logs!
             col_num_weeks = get_num_weeks(col_rec_sentence)
             col_topic_match = get_topic_match(col_rec_sentence)
             col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
             col_time = get_time(array_line[len(array_line) - 1])
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_helper_name + CONST_DELIMITER + col_badge_shown + CONST_DELIMITER + col4 + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER + col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_date + CONST_DELIMITER + col_time
+
+            # Constructing the new helper logfile line
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_helper_name + CONST_DELIMITER
+            line += col_badge_shown + CONST_DELIMITER + col4 + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
+            line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
+            line += col_date + CONST_DELIMITER + col_time
 
             # determine if this helper was selected
             was_selected = 0
@@ -185,7 +197,7 @@ A line in the Helperfile Log represents one (of three maximum) of the helpers se
 '''
 def proc_selection():
     file_out = open(FILENAME_SELECTIONLOG+EXTENSION_PROCESSED,'w')
-    file_out.write("QuickHelperInstanceID"+CONST_DELIMITER+"HelperSelected"+CONST_DELIMITER+"SelectedHelperID"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time\n")
+    file_out.write("QHInstanceID"+CONST_DELIMITER+"HelperSelected"+CONST_DELIMITER+"SelectedHelperID"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time\n")
 
     with open(FILENAME_SELECTIONLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
@@ -198,6 +210,8 @@ def proc_selection():
             col_helper_selected = array_line[1]
             col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
             col_time = get_time(array_line[len(array_line) - 1])
+
+            # Constructing the new selection logfile line
             line = col_instance_id + CONST_DELIMITER + col_helper_selected + CONST_DELIMITER
 
             # retrieve helper user ID
@@ -232,7 +246,7 @@ A line in the Upvote Log represents each instance a Helper up or downvotes a Qui
 '''
 def proc_vote():
     file_out = open(FILENAME_VOTELOG+EXTENSION_PROCESSED,'w')
-    file_out.write("HelperUserID"+CONST_DELIMITER+"QuickHelperInstanceID"+CONST_DELIMITER+"Vote"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time\n")
+    file_out.write("HelperUserID"+CONST_DELIMITER+"QHInstanceID"+CONST_DELIMITER+"Vote"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time\n")
 
     with open(FILENAME_VOTELOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
@@ -246,7 +260,10 @@ def proc_vote():
             colVote = array_line[2]
             col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
             col_time = get_time(array_line[len(array_line) - 1])
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + colVote + CONST_DELIMITER + col_date + CONST_DELIMITER + col_time
+
+            # Constructing the new vote logfile line
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + colVote + CONST_DELIMITER
+            line += col_date + CONST_DELIMITER + col_time
 
             # only write line if it's in our date range
             if is_during_course(col_date):
@@ -256,21 +273,29 @@ def proc_vote():
     file_out.close()
 
 '''
+ Removes duplicates from our list of instances, based on whatever key was used in duplicate_instances
+'''
+def remove_duplicates():
+    for list_duplicates in dict_all_instances:  # iterate through each duplicate-arranged list
+        selected_dup = None  # instance with a selection, otherwise use only first one
+        for dup in dict_all_instances[list_duplicates]:  # for each instance object in these duplicates
+            if getattr(dup, 'num_helpers_selected', 0) > 0:  # If it has helpers selected, it's the one
+                selected_dup = dup
+            elif selected_dup is None:  # we have no selected one, so let's make a default
+                selected_dup = dup  # using first one as default
+        if selected_dup is not None:  # We have a 'correct' one, so use that one
+            list_no_duplicates.append(selected_dup)
+    return list_no_duplicates
+
+
+'''
  Adds a QuickHelper instance (and conditions) to our condition dictionaries
-only if it's not already in the dictionaries (last __ digits tend to be the same in duplicates)
+ only if it's not already in the dictionaries (last __ digits tend to be the same in duplicates)
 '''
 def add_qh_instance(instance_id, cond_badge, cond_sentence, cond_voting, cond_user):
     # put last 7 digits of instanceID in dictLastDigs
     last_digs = instance_id[-7:]
     make_new_instance = dict_last_digs.get(last_digs,"dne") # return 0 if it doesn't exist
-
-    # all duplicates get added to our condition dictionaries
-    # since helper.log needs it (i.e., the first entry isn't
-    # always the one that was shown!
-    dict_badge[instance_id] = cond_badge
-    dict_sentence[instance_id] = cond_sentence
-    dict_voting[instance_id] = cond_voting
-    dict_user_id[instance_id] = cond_user
 
     if make_new_instance != "dne":  # item already exists, is a duplicate
         dict_last_digs[last_digs] = "duplicate"
@@ -304,7 +329,7 @@ def is_researcher(userID):
     # 5529557 - of
     # 2030452 - dg
     # 4480312 - sj
-    list_researchers = {5542424, 5556926, 5529557, 2030452, 4480312}
+    list_researchers = {5542424, 5556926, 5529557, 2030452, 4480312} # some additional researcher IDs
 
     if int(userID) < 0 or int(userID) in list_researchers: # TAs and researchers had userIDs less than 0
         return True

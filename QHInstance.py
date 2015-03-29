@@ -1,7 +1,7 @@
 __author__ = 'IH'
-__project__ = 'processDALMOOC'
+__project__ = 'processMOOC'
 
-class QuickHelperInstance(object):
+class QHInstance(object):
     ' A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers shown is stored in the Helperfile Log).'
     # ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
     # Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
@@ -36,6 +36,20 @@ class QuickHelperInstance(object):
         self.question_body = qb
         self.date = d
         self.time = t
+
+    '''
+    Duplicates have the same author, question title, and date
+    '''
+    def is_duplicate(self,compare_to):
+        if self.user_id == compare_to.user_id and self.question_title == compare_to.question_title and self.date == compare_to.date:
+            return True
+        return False
+
+    '''
+    Returns an 'ID' that should be the same as its duplicates
+    '''
+    def get_duplicate_key(self):
+        return self.cond_user_id+self.question_title+self.date
 
     def get_headers(delimiter):
         return "UserID" + delimiter + "InstanceID" + delimiter + "isBadgeCondition" + delimiter + "isIrrelevantSentence" + delimiter + "isVotingCondition" + delimiter + "isAnonymousImg" + delimiter + "isUsernameCondition" + delimiter + "helper0" + delimiter + "helper1" + delimiter + "helper2" + delimiter + "numHelpersSelected" + delimiter + "qTitle" + delimiter + "qBody" + delimiter + "date" + delimiter + "time"
