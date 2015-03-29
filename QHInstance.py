@@ -1,4 +1,4 @@
-__author__ = 'Iris'
+__author__ = 'IH'
 __project__ = 'processDALMOOC'
 
 class QuickHelperInstance(object):

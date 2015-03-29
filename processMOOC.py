@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__author__ = 'Iris'
+__author__ = 'IH'
 __project__ = 'processDALMOOC'
 
 import sys
@@ -47,8 +47,8 @@ CONST_LAST_DAY = datetime.date(2014, 12, 17)
 # mapping from instance ID to conditions (badge, sentence, voting, userid)
 count_repeat = 0
 dict_last_digs = {}
-dict_helpers = defaultdict(list) # instanceID -> a list of helper IDs shown
-dict_selected_helpers = defaultdict(list) # instanceID -> a list of helper IDs that were selected
+dict_helpers = defaultdict(list)  # instanceID -> a list of helper IDs shown
+dict_selected_helpers = defaultdict(list)  # instanceID -> a list of helper IDs that were selected
 dict_badge = {}
 dict_sentence = {}
 dict_voting = {}
@@ -86,14 +86,14 @@ ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMIT
 Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
 '''
 def proc_user():
-    file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
-    file_out.write(QuickHelperInstance.get_headers(CONST_DELIMITER)+"\n")
+    file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED, 'w')
+    file_out.write(QuickHelperInstance.get_headers(CONST_DELIMITER)+'\n')
 
     with open(FILENAME_USERLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
-            line = line[len(CONST_LINESTART): len(line)] # Cut off the extra chars from beginning
-            line = line.replace(CONST_DELIMITER,' ') # Replace all occurrences of delimiters with empty space
-            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER) # Replace delimiter stand-in with actual delimiters
+            line = line[len(CONST_LINESTART): len(line)]   # Cut off the extra chars from beginning
+            line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
+            line = line.replace(CONST_DELIMITERVAR, CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
             # print(line)
             array_line = line.split(CONST_DELIMITER)
             col_helper_id = array_line[0]
@@ -136,14 +136,14 @@ A line in the Helperfile Log represents all the information specific to the help
 {"level":"info","message":"<DELIMITER>1<DELIMITER>1413061797181100<DELIMITER>8<DELIMITER>http://i58.tinypic.com/2cgymgh.jpg<DELIMITER>3<DELIMITER>This student has been participating in the course for 1 weeks and the matching of his/her interest and the topic of your query is 100.0 .<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
 '''
 def proc_helper():
-    file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED,'w')
+    file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
     file_out.write("HelperUserID"+CONST_DELIMITER+"QuickHelperInstanceID"+CONST_DELIMITER+"HelperUsername"+CONST_DELIMITER+"badgeStarsShown"+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+"numWeeks"+CONST_DELIMITER+"topicMatch"+CONST_DELIMITER+"recommenderSentence"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time" + CONST_DELIMITER + "wasSelected" + CONST_DELIMITER + "isBadgeCondition" + CONST_DELIMITER + "isIrrelevantSentenceCondition" + CONST_DELIMITER + "isVotingCondition" + CONST_DELIMITER + "isUserIDCondition\n")
 
-    with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE,'r') as f:
+    with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
         for line in f:
-            line = line[len(CONST_LINESTART): len(line)] # Cut off the extra chars from beginning
-            line = line.replace(CONST_DELIMITER,' ') # Replace all occurrences of delimiters with empty space
-            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER) # Replace delimiter stand-in with actual delimiters
+            line = line[len(CONST_LINESTART): len(line)]  # Cut off the extra chars from beginning
+            line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
+            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
             # print(line)
             array_line = line.split(CONST_DELIMITER)
             col_helper_id = array_line[0]
@@ -170,7 +170,7 @@ def proc_helper():
             # retrieve experimental conditions from dict
             if col_instance_id not in dict_badge:
                 print("WARNING: Helper.log instance does not exist in user.log: "+col_instance_id)
-            line += CONST_DELIMITER + str(dict_badge.get(col_instance_id,"")) + CONST_DELIMITER + str(dict_sentence.get(col_instance_id,"")) + CONST_DELIMITER + str(dict_voting.get(col_instance_id,"")) + CONST_DELIMITER + str(dict_user_id.get(col_instance_id,""))
+            line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_sentence.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_voting.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
             # only write line if it's in our date range
             if is_during_course(col_date):
@@ -189,19 +189,19 @@ def proc_selection():
 
     with open(FILENAME_SELECTIONLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
-            line = line[len(CONST_LINESTART): len(line)] # Cut off the extra chars from beginning
-            line = line.replace(CONST_DELIMITER,' ') # Replace all occurrences of delimiters with empty space
-            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER) # Replace delimiter stand-in with actual delimiters
+            line = line[len(CONST_LINESTART): len(line)]  # Cut off the extra chars from beginning
+            line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
+            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
             # print(line)
             array_line = line.split(CONST_DELIMITER)
             col_instance_id = array_line[0]
             col_helper_selected = array_line[1]
-            col_date = get_date(array_line[len(array_line) - 1] ) # Due to some wonky extra column with a url
-            col_time = get_time(array_line[len(array_line) - 1] )
+            col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
+            col_time = get_time(array_line[len(array_line) - 1])
             line = col_instance_id + CONST_DELIMITER + col_helper_selected + CONST_DELIMITER
 
             # retrieve helper user ID
-            if len(col_helper_selected) > 1: #i.e., it's not 0,1, or 2
+            if len(col_helper_selected) > 1:  #i.e., it's not 0,1, or 2
                 line += ""
             else:
                 array_helpers = dict_helpers[col_instance_id] # all helpers shown for this instance
@@ -214,7 +214,7 @@ def proc_selection():
 
                 # record this as a selected helper for helper.log
                 dict_selected_helpers[col_instance_id].append(helper_id)
-                dict_num_helpers[col_instance_id] = int(dict_num_helpers.get(col_instance_id, 0)) + 1 # add one to our number of helpers selected
+                dict_num_helpers[col_instance_id] = int(dict_num_helpers.get(col_instance_id, 0)) + 1  # add one to our number of helpers selected
 
             # continue...
             line += CONST_DELIMITER + col_date + CONST_DELIMITER + col_time
@@ -236,16 +236,16 @@ def proc_vote():
 
     with open(FILENAME_VOTELOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
-            line = line[len(CONST_LINESTART): len(line)] # Cut off the extra chars from beginning
-            line = line.replace(CONST_DELIMITER,' ') # Replace all occurrences of delimiters with empty space
-            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER) # Replace delimiter stand-in with actual delimiters
+            line = line[len(CONST_LINESTART): len(line)]  # Cut off the extra chars from beginning
+            line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
+            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
             # print(line)
             array_line = line.split(CONST_DELIMITER)
             col_helper_id = array_line[0]
             col_instance_id = array_line[1]
             colVote = array_line[2]
-            col_date = get_date(array_line[len(array_line) - 1] ) # Due to some wonky extra column with a url
-            col_time = get_time(array_line[len(array_line) - 1] )
+            col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
+            col_time = get_time(array_line[len(array_line) - 1])
             line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + colVote + CONST_DELIMITER + col_date + CONST_DELIMITER + col_time
 
             # only write line if it's in our date range
@@ -259,26 +259,26 @@ def proc_vote():
  Adds a QuickHelper instance (and conditions) to our condition dictionaries
 only if it's not already in the dictionaries (last __ digits tend to be the same in duplicates)
 '''
-def add_qh_instance(instance_id, condBadge, condSentence, condVoting, condUser):
-    # put last 7 digits of instanceID in dictLast7digs
+def add_qh_instance(instance_id, cond_badge, cond_sentence, cond_voting, cond_user):
+    # put last 7 digits of instanceID in dictLastDigs
     last_digs = instance_id[-7:]
     make_new_instance = dict_last_digs.get(last_digs,"dne") # return 0 if it doesn't exist
 
     # all duplicates get added to our condition dictionaries
     # since helper.log needs it (i.e., the first entry isn't
     # always the one that was shown!
-    dict_badge[instance_id] = condBadge
-    dict_sentence[instance_id] = condSentence
-    dict_voting[instance_id] = condVoting
-    dict_user_id[instance_id] = condUser
+    dict_badge[instance_id] = cond_badge
+    dict_sentence[instance_id] = cond_sentence
+    dict_voting[instance_id] = cond_voting
+    dict_user_id[instance_id] = cond_user
 
-    if make_new_instance != "dne": # item already exists, is a duplicate
-        dict_last_digs[last_digs] = "duplicate";
+    if make_new_instance != "dne":  # item already exists, is a duplicate
+        dict_last_digs[last_digs] = "duplicate"
         global count_repeat
         count_repeat+= 1
         return False
-    else: # item does not exist, add it
-        dict_last_digs[last_digs] = "exists";
+    else:  # item does not exist, add it
+        dict_last_digs[last_digs] = "exists"
         return True
 
 '''
@@ -288,25 +288,23 @@ def is_during_course(instance_date):
     if len(instance_date) == 10:
         array_date = instance_date.split("-")
         date_converted = datetime.date(int(array_date[0]), int(array_date[1]), int(array_date[2]))
-        if date_converted >= CONST_FIRST_DAY and date_converted <= CONST_LAST_DAY :
+        if CONST_LAST_DAY >= date_converted >= CONST_FIRST_DAY:
             return True
-        else: # Not in given course date range
+        else:  # Not in given course date range
             return False
     else:
         print("ERROR processing date column: " + instance_date)
         return False
 '''
 Determine if given user is one of the researchers
-TODO: Not sure if this works for the user.log file?
 '''
 def is_researcher(userID):
-    # 5542424 - ryansbaker
-    # 5556926 - diyi
-    # 5529557 - ferschke
-    # 2030452 - dgasevic
-    # 4480312 - sreckojoksimovic
-    # 2805898 - UTAMatt
-    list_researchers = {5542424, 5556926, 5529557, 2030452, 4480312, 2805898}
+    # 5542424 - rb
+    # 5556926 - d
+    # 5529557 - of
+    # 2030452 - dg
+    # 4480312 - sj
+    list_researchers = {5542424, 5556926, 5529557, 2030452, 4480312}
 
     if int(userID) < 0 or int(userID) in list_researchers: # TAs and researchers had userIDs less than 0
         return True
