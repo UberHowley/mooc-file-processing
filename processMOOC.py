@@ -58,7 +58,7 @@ dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our inst
 dict_all_instances = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
 list_no_duplicates = []  # a list of instances with duplicates removed
 
-# TODO: command line input for column delimiters
+# TODO: command line input for column delimiters, dates, filenames, etc.
 
 '''
 main function - calls the functions that do the processing for each kind of file
@@ -143,7 +143,7 @@ A line in the Helperfile Log represents all the information specific to the help
 '''
 def proc_helper():
     file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write("HelperUserID"+CONST_DELIMITER+"QHInstanceID"+CONST_DELIMITER+"HelperUsername"+CONST_DELIMITER+"badgeStarsShown"+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+"numWeeks"+CONST_DELIMITER+"topicMatch"+CONST_DELIMITER+"recommenderSentence"+CONST_DELIMITER+"irrelevantSentence"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time" + CONST_DELIMITER + "wasSelected" + CONST_DELIMITER + "isBadgeCondition" + CONST_DELIMITER + "isIrrelevantSentenceCondition" + CONST_DELIMITER + "isVotingCondition" + CONST_DELIMITER + "isUserIDCondition\n")
+    file_out.write("HelperUserID"+CONST_DELIMITER+"QHInstanceID"+CONST_DELIMITER+"badgeStarsShown"+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+"numWeeks"+CONST_DELIMITER+"topicMatch"+CONST_DELIMITER+"recommenderSentence"+CONST_DELIMITER+"irrelevantSentence"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time" + CONST_DELIMITER + "wasSelected" + CONST_DELIMITER + "isBadgeCondition" + CONST_DELIMITER + "isIrrelevantSentenceCondition" + CONST_DELIMITER + "isVotingCondition" + CONST_DELIMITER + "isUserIDCondition\n")
 
     with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
         for line in f:
@@ -165,7 +165,7 @@ def proc_helper():
             col_time = get_time(array_line[len(array_line) - 1])
 
             # Constructing the new helper logfile line
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_helper_name + CONST_DELIMITER
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER
             line += col_badge_shown + CONST_DELIMITER + col4 + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
             line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
             line += col_date + CONST_DELIMITER + col_time
