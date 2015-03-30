@@ -55,9 +55,11 @@ dict_sentence = {}
 dict_voting = {}
 dict_user_id = {}
 
-dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
 dict_all_instances = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
+dict_all_helpers = defaultdict(list)  # instance_id -> list (3) helper logfile entries to remove duplicates from later
+dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
 list_no_duplicates = []  # a list of instances with duplicates removed
+list_no_dups_helpers = []  # a list of all helper instances with duplicates removed
 
 # TODO: command line input for column delimiters, dates, filenames, etc.
 
@@ -72,11 +74,11 @@ def run():
     proc_helper()
     proc_vote()
 
-    # user.log has to be treated differently and written at the end
-    # we need information from selection.log to write it properly
+    remove_duplicates()  # remove duplicates from user.log and helper.log
+
+    # user.log must be written at the end, because we need info from select.log
     file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     file_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
-    remove_duplicates()
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
         setattr(qh_instance, utils.COL_NUMHELPERS, dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
@@ -84,6 +86,15 @@ def run():
         file_out.write(line+'\n')
     file_out.close()
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE)
+
+    # helper.log written at end so as to only remove duplicates once
+    file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
+    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
+
+    for h_line in list_no_dups_helpers:
+        file_out.write(h_line + '\n')
+    file_out.close()
+    print("Done writing " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
 
 '''
 A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers
@@ -144,7 +155,7 @@ A line in the Helperfile Log represents all the information specific to the help
 '''
 def proc_helper():
     file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
+    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
 
     with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
         for line in f:
@@ -184,12 +195,11 @@ def proc_helper():
                 print("WARNING: Helper.log instance does not exist in user.log: "+col_instance_id)
             line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_sentence.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_voting.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
-            # only write line if it's in our date range and it appeared in user.log
+            # only store line if it's in our date range and it appeared in user.log
             if is_during_course(col_date) and col_instance_id in dict_helpers:  # that instance didn't occur in user.log:
-                file_out.write(line+'\n')
+                dict_all_helpers[col_instance_id].append(line)
             #print(line)
     print("Done processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE)
-    file_out.close()
 
 '''
 A line in the Helperfile Log represents one (of three maximum) of the helpers selected by user
@@ -274,6 +284,7 @@ def proc_vote():
 
 '''
  Removes duplicates from our list of instances, based on whatever key was used in duplicate_instances
+ Also removes duplicates from our helper logs
 '''
 def remove_duplicates():
     for list_duplicates in dict_all_instances:  # iterate through each duplicate-arranged list
@@ -283,8 +294,9 @@ def remove_duplicates():
                 selected_dup = dup
             elif selected_dup is None:  # we have no selected one, so let's make a default
                 selected_dup = dup  # using first one as default
-        if selected_dup is not None:  # We have a 'correct' one, so use that one
-            list_no_duplicates.append(selected_dup)
+        if selected_dup is not None:
+            list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
+            list_no_dups_helpers.extend(dict_all_helpers[getattr(selected_dup, 'instance_id')])  # Record the 3 helper lines for our one selected instance
     return list_no_duplicates
 
 '''

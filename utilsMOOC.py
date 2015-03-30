@@ -40,6 +40,7 @@ COL_HELPER2 = "helper2"
 COL_NUMHELPERS = "numHelpersSelected"
 # helper.log
 COL_HELPERID = "helperUserID"
+COL_PREVHELPREQ = "NumPrevHelpRequests"
 COL_NUMSTARS = "numBadgeStars"
 COL_NUMWEEKS = "numWeeks"
 COL_TOPICMATCH = "topicMatch"
@@ -51,17 +52,3 @@ COL_HELPERSELECTED = "index_SelectedHelper"
 COL_SELECTEDHELPER_ID = "id_SelectedHelper"
 # vote.log
 COL_VOTE = "vote"
-
-
-'''
-main function - calls the functions that do the processing for each kind of file
-'''
-def main():
-    print("Utils file just contains constant values. Nothing to run.")
-
-'''
-So that processMOOC can act as either a reusable module, or as a standalone program.
-'''
-if __name__ == '__main__':
-    main()
-
