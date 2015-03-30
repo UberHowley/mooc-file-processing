@@ -96,15 +96,15 @@ def proc_user():
             line = line[len(CONST_LINESTART): len(line)]   # Cut off the extra chars from beginning
             line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
             line = line.replace(CONST_DELIMITERVAR, CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
-            # print(line)
             array_line = line.split(CONST_DELIMITER)
-            col_helper_id = array_line[0]
+            #print(str(len(array_line))+" " +line)
+            col_user_id= array_line[0]
             col_instance_id = array_line[1]
             col_badge_shown = array_line[2]
             col_irrelevant_sentence = array_line[3]
             col_voting = array_line[4]
             col_anon_img = array_line[5]
-            col_user_id = array_line[6]
+            col_userid_shown = array_line[6]
             col_helper0 = array_line[7]
             col_helper1 = array_line[8]
             col_helper2 = array_line[9]
@@ -112,7 +112,7 @@ def proc_user():
             col_ques_body = array_line[11]
             col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
             col_time = get_time(array_line[len(array_line) - 1])
-            user_instance = QHInstance(col_helper_id, col_instance_id, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_user_id,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body,col_date, col_time)
+            user_instance = QHInstance(col_user_id, col_instance_id, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body,col_date, col_time)
 
             # keeping track of instances for printing late (if in correct date range)
             # store instance if it's during the right time period
@@ -128,7 +128,7 @@ def proc_user():
             dict_badge[col_instance_id] = col_badge_shown
             dict_sentence[col_instance_id] = col_irrelevant_sentence
             dict_voting[col_instance_id] = col_voting
-            dict_user_id[col_instance_id] = col_user_id
+            dict_user_id[col_instance_id] = col_userid_shown
 
             # Add helper IDs to dictionary of instances to helpers
             dict_helpers[col_instance_id].append(col_helper0)
