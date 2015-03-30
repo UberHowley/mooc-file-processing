@@ -262,6 +262,8 @@ def proc_vote():
         for line in f:
             line = line[len(CONST_LINESTART): len(line)]  # Cut off the extra chars from beginning
             line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
+            line = line.replace("<i>", '')  # Vote.log has some HTML to remove
+            line = line.replace("</i>", '')
             line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
             # print(line)
             array_line = line.split(CONST_DELIMITER)
