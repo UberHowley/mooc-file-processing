@@ -77,8 +77,7 @@ def main():
     remove_duplicates()
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
-        iid = getattr(qh_instance, 'instance_id')
-        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(iid, 0))
+        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
         line = qh_instance.to_string(delimiter=CONST_DELIMITER)
         file_out.write(line+'\n')
     file_out.close()
@@ -173,8 +172,7 @@ def proc_helper():
             # determine if this helper was selected
             was_selected = 0
             if col_instance_id not in dict_helpers:  # that instance didn't occur in user.log
-                was_selected = "null"
-                print("WARNING: instanceID in helper.log not found in user.log: " + col_instance_id)
+                print("WARNING: instanceID in helper.log not found in user.log, not writing to file: " + col_instance_id)
             elif col_helper_id in dict_selected_helpers[col_instance_id]:  # this ID was selected in selection.log
                 was_selected = 1
             line += CONST_DELIMITER + str(was_selected)
@@ -184,8 +182,8 @@ def proc_helper():
                 print("WARNING: Helper.log instance does not exist in user.log: "+col_instance_id)
             line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_sentence.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_voting.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
-            # only write line if it's in our date range
-            if is_during_course(col_date):
+            # only write line if it's in our date range and it appeared in user.log
+            if is_during_course(col_date) and col_instance_id in dict_helpers:  # that instance didn't occur in user.log:
                 file_out.write(line+'\n')
             #print(line)
     print("Done processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE)
@@ -215,14 +213,14 @@ def proc_selection():
             line = col_instance_id + CONST_DELIMITER + col_helper_selected + CONST_DELIMITER
 
             # retrieve helper user ID
-            if len(col_helper_selected) > 1:  #i.e., it's not 0,1, or 2
+            if len(col_helper_selected) > 1:  #i.e., it's not 0,1, or 2 ("NONE")
                 line += ""
             else:
-                array_helpers = dict_helpers[col_instance_id] # all helpers shown for this instance
+                array_helpers = dict_helpers[col_instance_id]  # all helpers shown for this instance
                 helper_id = ""
-                if len(array_helpers) < int(col_helper_selected)+1: # less helpers than the index of this helper
+                if len(array_helpers) < int(col_helper_selected)+1:  # less helpers than the index of this helper
                     print("WARNING: " + str(len(array_helpers))+" helpers listed for instance " + col_instance_id)
-                else: # we have an existing helper
+                else:  # we have an existing helper
                     helper_id = array_helpers[int(col_helper_selected)]
                 line += helper_id
 
@@ -236,7 +234,7 @@ def proc_selection():
             # only write line if it's in our date range
             if is_during_course(col_date):
                 file_out.write(line+'\n')
-            #print(line)
+
     print("Done processing "+FILENAME_SELECTIONLOG+EXTENSION_LOGFILE)
     file_out.close()
 
