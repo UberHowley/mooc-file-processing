@@ -1,6 +1,8 @@
 __author__ = 'IH'
 __project__ = 'processMOOC'
 
+import utilsMOOC as utils
+
 class QHInstance(object):
     ' A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers shown is stored in the Helperfile Log).'
     # ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
@@ -46,13 +48,13 @@ class QHInstance(object):
         return False
 
     '''
-    Returns an 'ID' that should be the same as its duplicates
+    Returns an 'ID' that is the same as its duplicates
     '''
     def get_duplicate_key(self):
         return self.cond_user_id+self.question_title+self.date
 
     def get_headers(delimiter):
-        return "UserID" + delimiter + "InstanceID" + delimiter + "isBadgeCondition" + delimiter + "isIrrelevantSentence" + delimiter + "isVotingCondition" + delimiter + "isAnonymousImg" + delimiter + "isUsernameCondition" + delimiter + "helper0" + delimiter + "helper1" + delimiter + "helper2" + delimiter + "numHelpersSelected" + delimiter + "qTitle" + delimiter + "qBody" + delimiter + "date" + delimiter + "time"
+        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_DATE + delimiter + utils.COL_TIME
 
     def to_string(self, delimiter):
         return self.user_id + delimiter + self.instance_id + delimiter + self.cond_badge + delimiter + self.cond_irrelevant_sentence + delimiter + self.cond_voting + delimiter + self.cond_anon_img + delimiter + self.cond_user_id + delimiter + self.id_helper0 + delimiter + self.id_helper1 + delimiter + self.id_helper2 + delimiter + str(self.num_helpers_selected) + delimiter + self.question_title + delimiter + self.question_body + delimiter + self.date + delimiter + self.time

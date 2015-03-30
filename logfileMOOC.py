@@ -3,7 +3,7 @@
 __author__ = 'IH'
 __project__ = 'processMOOC'
 
-import processMOOC as pm
+import utilsMOOC as utils
 import sys
 import fileinput
 import datetime
@@ -11,21 +11,21 @@ from collections import defaultdict
 from QHInstance import QHInstance
 
 # LOGFILE NAMES
-FILENAME_HELPERLOG = pm.FILENAME_HELPERLOG
-FILENAME_SELECTIONLOG = pm.FILENAME_SELECTIONLOG
-FILENAME_VOTELOG = pm.FILENAME_VOTELOG
-FILENAME_USERLOG = pm.FILENAME_USERLOG
-EXTENSION_LOGFILE = pm.EXTENSION_LOGFILE
-EXTENSION_PROCESSED = pm.EXTENSION_PROCESSED
+FILENAME_HELPERLOG = utils.FILENAME_HELPERLOG
+FILENAME_SELECTIONLOG = utils.FILENAME_SELECTIONLOG
+FILENAME_VOTELOG = utils.FILENAME_VOTELOG
+FILENAME_USERLOG = utils.FILENAME_USERLOG
+EXTENSION_LOGFILE = utils.EXTENSION_LOGFILE
+EXTENSION_PROCESSED = utils.EXTENSION_PROCESSED
 
 # TEXT-RELATED VARIABLES
-CONST_DELIMITER = pm.CONST_DELIMITER
+CONST_DELIMITER = utils.CONST_DELIMITER
 CONST_DELIMITERVAR = "<DELIMITER>"
 CONST_LINESTART = "{\"level\":\"info\",\"message\":\"<DELIMITER>"
 
 # limiting date
-CONST_FIRST_DAY = pm.CONST_FIRST_DAY
-CONST_LAST_DAY = pm.CONST_LAST_DAY
+CONST_FIRST_DAY = utils.CONST_FIRST_DAY
+CONST_LAST_DAY = utils.CONST_LAST_DAY
 
 # IMAGE VARIABLES
 BADGE_NONE = "http://erebor.lti.cs.cmu.edu/quickhelper/badges/blank.png"
@@ -59,6 +59,8 @@ dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our inst
 dict_all_instances = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
 list_no_duplicates = []  # a list of instances with duplicates removed
 
+# TODO: command line input for column delimiters, dates, filenames, etc.
+
 '''
 run function - calls the functions that do the processing for each kind of file
 user.log is processed first and then written to file at the end
@@ -77,7 +79,7 @@ def run():
     remove_duplicates()
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
-        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
+        setattr(qh_instance, utils.COL_NUMHELPERS, dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
         line = qh_instance.to_string(delimiter=CONST_DELIMITER)
         file_out.write(line+'\n')
     file_out.close()
@@ -142,7 +144,7 @@ A line in the Helperfile Log represents all the information specific to the help
 '''
 def proc_helper():
     file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write("HelperUserID"+CONST_DELIMITER+"QHInstanceID"+CONST_DELIMITER+"badgeStarsShown"+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+"numWeeks"+CONST_DELIMITER+"topicMatch"+CONST_DELIMITER+"recommenderSentence"+CONST_DELIMITER+"irrelevantSentence"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time" + CONST_DELIMITER + "wasSelected" + CONST_DELIMITER + "isBadgeCondition" + CONST_DELIMITER + "isIrrelevantSentenceCondition" + CONST_DELIMITER + "isVotingCondition" + CONST_DELIMITER + "isUserIDCondition\n")
+    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+"NumPrevHelpRequests"+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
 
     with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
         for line in f:
@@ -195,7 +197,7 @@ A line in the Helperfile Log represents one (of three maximum) of the helpers se
 '''
 def proc_selection():
     file_out = open(FILENAME_SELECTIONLOG+EXTENSION_PROCESSED,'w')
-    file_out.write("QHInstanceID"+CONST_DELIMITER+"HelperSelected"+CONST_DELIMITER+"SelectedHelperID"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time\n")
+    file_out.write(utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_HELPERSELECTED+CONST_DELIMITER+utils.COL_SELECTEDHELPER_ID+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME+"\n")
 
     with open(FILENAME_SELECTIONLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
@@ -244,7 +246,7 @@ A line in the Upvote Log represents each instance a Helper up or downvotes a Qui
 '''
 def proc_vote():
     file_out = open(FILENAME_VOTELOG+EXTENSION_PROCESSED,'w')
-    file_out.write("HelperUserID"+CONST_DELIMITER+"QHInstanceID"+CONST_DELIMITER+"Vote"+CONST_DELIMITER+"date"+CONST_DELIMITER+"time\n")
+    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_VOTE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME+"\n")
 
     with open(FILENAME_VOTELOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
@@ -277,32 +279,13 @@ def remove_duplicates():
     for list_duplicates in dict_all_instances:  # iterate through each duplicate-arranged list
         selected_dup = None  # instance with a selection, otherwise use only first one
         for dup in dict_all_instances[list_duplicates]:  # for each instance object in these duplicates
-            if getattr(dup, 'num_helpers_selected', 0) > 0:  # If it has helpers selected, it's the one
+            if getattr(dup, utils.COL_NUMHELPERS, 0) > 0:  # If it has helpers selected, it's the one
                 selected_dup = dup
             elif selected_dup is None:  # we have no selected one, so let's make a default
                 selected_dup = dup  # using first one as default
         if selected_dup is not None:  # We have a 'correct' one, so use that one
             list_no_duplicates.append(selected_dup)
     return list_no_duplicates
-
-
-'''
- Adds a QuickHelper instance (and conditions) to our condition dictionaries
- only if it's not already in the dictionaries (last __ digits tend to be the same in duplicates)
-'''
-def add_qh_instance(instance_id, cond_badge, cond_sentence, cond_voting, cond_user):
-    # put last 7 digits of instanceID in dictLastDigs
-    last_digs = instance_id[-7:]
-    make_new_instance = dict_last_digs.get(last_digs,"dne") # return 0 if it doesn't exist
-
-    if make_new_instance != "dne":  # item already exists, is a duplicate
-        dict_last_digs[last_digs] = "duplicate"
-        global count_repeat
-        count_repeat+= 1
-        return False
-    else:  # item does not exist, add it
-        dict_last_digs[last_digs] = "exists"
-        return True
 
 '''
 Determine if given date is within the range of dates the course took place
