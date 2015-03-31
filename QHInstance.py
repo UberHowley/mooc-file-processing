@@ -22,6 +22,7 @@ class QHInstance(object):
     num_helpers_selected = 0
     date = "-1"
     time = "-1"
+    url = ""
 
     def __init__(self, uid, iid, cb, cis, cv, cai, cui, h0, h1, h2, qt, qb, d, t):
         self.user_id = uid
@@ -54,7 +55,7 @@ class QHInstance(object):
         return self.cond_user_id+self.question_title+self.date
 
     def get_headers(delimiter):
-        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_DATE + delimiter + utils.COL_TIME
+        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_URL + delimiter +utils.COL_DATE + delimiter + utils.COL_TIME
 
     def to_string(self, delimiter):
-        return self.user_id + delimiter + self.instance_id + delimiter + self.cond_badge + delimiter + self.cond_irrelevant_sentence + delimiter + self.cond_voting + delimiter + self.cond_anon_img + delimiter + self.cond_user_id + delimiter + self.id_helper0 + delimiter + self.id_helper1 + delimiter + self.id_helper2 + delimiter + str(self.num_helpers_selected) + delimiter + self.question_title + delimiter + self.question_body + delimiter + self.date + delimiter + self.time
+        return self.user_id + delimiter + self.instance_id + delimiter + self.cond_badge + delimiter + self.cond_irrelevant_sentence + delimiter + self.cond_voting + delimiter + self.cond_anon_img + delimiter + self.cond_user_id + delimiter + self.id_helper0 + delimiter + self.id_helper1 + delimiter + self.id_helper2 + delimiter + str(self.num_helpers_selected) + delimiter + self.question_title + delimiter + self.question_body + delimiter + self.url + delimiter +self.date + delimiter + self.time

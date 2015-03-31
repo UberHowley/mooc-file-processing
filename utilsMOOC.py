@@ -10,6 +10,7 @@ FILENAME_HELPERLOG = "helper"
 FILENAME_SELECTIONLOG = "selection"
 FILENAME_VOTELOG = "vote"
 FILENAME_USERLOG = "user"
+FILENAME_CLICKLOG = "click"
 EXTENSION_LOGFILE = ".log"
 EXTENSION_PROCESSED = ".csv"
 
@@ -52,3 +53,9 @@ COL_HELPERSELECTED = "index_SelectedHelper"
 COL_SELECTEDHELPER_ID = "id_SelectedHelper"
 # vote.log
 COL_VOTE = "vote"
+# click.log
+COL_URL = "url"
+COL_DATE_SENT = COL_DATE+"UrlSent"
+COL_TIME_SENT = COL_TIME+"UrlSent"
+COL_DATE_CLICKED = COL_DATE+"UrlClicked"
+COL_TIME_CLICKED = COL_TIME+"UrlClicked"

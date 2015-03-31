@@ -88,16 +88,16 @@ def run():
         line = qh_instance.to_string(delimiter=CONST_DELIMITER)
         file_out.write(line+'\n')
     file_out.close()
-    print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE)
+    print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+"\n")
 
     # helper.log written at end so as to only remove duplicates once
     file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
     file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
-
+    # iterate through our list of helper instances without duplicates
     for h_line in list_no_dups_helpers:
         file_out.write(h_line + '\n')
     file_out.close()
-    print("Done writing " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
+    print("Done writing " + FILENAME_HELPERLOG+EXTENSION_LOGFILE+"\n")
 
 '''
 A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers
@@ -106,6 +106,8 @@ ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMIT
 Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
 '''
 def proc_user():
+    print("Processing "+FILENAME_USERLOG+EXTENSION_LOGFILE)
+
     with open(FILENAME_USERLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
             line = line[len(CONST_LINESTART): len(line)]   # Cut off the extra chars from beginning
@@ -155,15 +157,14 @@ def proc_user():
             dict_helpers[col_instance_id].append(col_helper1)
             dict_helpers[col_instance_id].append(col_helper2)
             #print(user_instance.to_string(delimiter=CONST_DELIMITER))
-    print("Done processing "+FILENAME_USERLOG+EXTENSION_LOGFILE)
+    print("Done processing "+FILENAME_USERLOG+EXTENSION_LOGFILE+"\n")
 
 '''
 A line in the Helperfile Log represents all the information specific to the helper that the user saw.
 {"level":"info","message":"<DELIMITER>1<DELIMITER>1413061797181100<DELIMITER>8<DELIMITER>http://i58.tinypic.com/2cgymgh.jpg<DELIMITER>3<DELIMITER>This student has been participating in the course for 1 weeks and the matching of his/her interest and the topic of your query is 100.0 .<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
 '''
 def proc_helper():
-    file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
+    print("Processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE)
 
     with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
         for line in f:
@@ -193,27 +194,29 @@ def proc_helper():
             # determine if this helper was selected
             was_selected = 0
             if col_instance_id not in dict_helpers:  # that instance didn't occur in user.log
-                print("WARNING: instanceID in helper.log not found in user.log, not writing to file: " + col_instance_id)
+                print("WARNING: instanceID in "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+" not found in " + FILENAME_USERLOG+EXTENSION_LOGFILE+", not writing to file: " + col_instance_id)
             elif col_helper_id in dict_selected_helpers[col_instance_id]:  # this ID was selected in selection.log
                 was_selected = 1
             line += CONST_DELIMITER + str(was_selected)
 
             # retrieve experimental conditions from dict
             if col_instance_id not in dict_badge:
-                print("WARNING: Helper.log instance does not exist in user.log: "+col_instance_id)
+                print("WARNING: "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+" instance does not exist in" + FILENAME_USERLOG+EXTENSION_LOGFILE+": "+col_instance_id)
             line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_sentence.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_voting.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
             # only store line if it's in our date range and it appeared in user.log
             if is_during_course(col_date) and col_instance_id in dict_helpers:  # that instance didn't occur in user.log:
                 dict_all_helpers[col_instance_id].append(line)
             #print(line)
-    print("Done processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE)
+    print("Done processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+"\n")
 
 '''
 A line in the Helperfile Log represents one (of three maximum) of the helpers selected by user
 {"level":"info","message":"<DELIMITER>11<DELIMITER>0<DELIMITER>","timestamp":"2014-10-11T21:09:57.211Z"}
 '''
 def proc_selection():
+    print("Processing "+FILENAME_SELECTIONLOG+EXTENSION_LOGFILE)
+
     file_out = open(FILENAME_SELECTIONLOG+EXTENSION_PROCESSED,'w')
     file_out.write(utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_HELPERSELECTED+CONST_DELIMITER+utils.COL_SELECTEDHELPER_ID+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME+"\n")
 
@@ -239,9 +242,11 @@ def proc_selection():
                 array_helpers = dict_helpers[col_instance_id]  # all helpers shown for this instance
                 helper_id = ""
                 if len(array_helpers) < int(col_helper_selected)+1:  # less helpers than the index of this helper
-                    print("WARNING: " + str(len(array_helpers))+" helpers listed for instance " + col_instance_id)
-                else:  # we have an existing helper
+                    print("WARNING: Helper index ("+col_helper_selected+") referenced in " + FILENAME_SELECTIONLOG+EXTENSION_LOGFILE+" is outside possible number of helpers (i.e., "+str(len(array_helpers))+"): " + col_instance_id)
+                elif 0 <= int(col_helper_selected) <= 2:  # valid index is 0, 1, or 2
                     helper_id = array_helpers[int(col_helper_selected)]
+                else:  # we have an invalid helper index
+                    print("WARNING: Helper index ("+col_helper_selected+") referenced in " + FILENAME_SELECTIONLOG+EXTENSION_LOGFILE+" does not exist in instance: " + col_instance_id)
                 line += helper_id
 
                 # record this as a selected helper for helper.log
@@ -255,7 +260,7 @@ def proc_selection():
             if is_during_course(col_date):
                 file_out.write(line+'\n')
 
-    print("Done processing "+FILENAME_SELECTIONLOG+EXTENSION_LOGFILE)
+    print("Done processing "+FILENAME_SELECTIONLOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
 '''
@@ -263,6 +268,8 @@ A line in the Upvote Log represents each instance a Helper up or downvotes a Qui
 {"level":"info","message":"<DELIMITER>2231948<DELIMITER>1<DELIMITER>1<DELIMITER>","timestamp":"2014-10-11T06:05:13.668Z"}
 '''
 def proc_vote():
+    print("Processing "+FILENAME_VOTELOG+EXTENSION_LOGFILE)
+
     file_out = open(FILENAME_VOTELOG+EXTENSION_PROCESSED,'w')
     file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_VOTE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME+"\n")
 
@@ -289,7 +296,7 @@ def proc_vote():
             if is_during_course(col_date):
                 file_out.write(line+'\n')
             #print(line)
-    print("Done processing "+FILENAME_VOTELOG+EXTENSION_LOGFILE)
+    print("Done processing "+FILENAME_VOTELOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
 '''
@@ -297,6 +304,8 @@ A line in the Click Log represents each instance a Helper up or downvotes a Quic
 {"level":"info","message":"<DELIMITER><i>helper_id</i><DELIMITER><i>instance_id</i><DELIMITER>https://www.edx.org//courses/UTArlingtonX/LINK5.10x/3T2014/discussion/forum/8d9482b366ae4999b706b2d7372d8393/threads/54808da7a2a525e05300156b<DELIMITER>","timestamp":"2014-12-04T16:35:45.863Z"}
 '''
 def proc_click():
+    print("Processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE)
+
     file_out = open(FILENAME_CLICKLOG+EXTENSION_PROCESSED,'w')
     file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_DATE_SENT+CONST_DELIMITER+utils.COL_TIME_SENT+CONST_DELIMITER+utils.COL_DATE_CLICKED+CONST_DELIMITER+utils.COL_TIME_CLICKED+CONST_DELIMITER+CONST_DELIMITER+utils.COL_QTITLE+CONST_DELIMITER+utils.COL_QBODY+CONST_DELIMITER+utils.COL_URL+"\n")
 
@@ -338,7 +347,7 @@ def proc_click():
                 file_out.write(line+'\n')
                 # TODO: there's duplicates in the click logs from clicking several times that need to be removed
             #print(line)
-    print("Done processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE)
+    print("Done processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
 '''
@@ -370,7 +379,7 @@ def is_during_course(instance_date):
         else:  # Not in given course date range
             return False
     else:
-        print("ERROR processing date column: " + instance_date)
+        print("ERROR:: logfileMOOC.is_during_course(): Cannot process date column: " + instance_date)
         return False
 '''
 Determine if given user is one of the researchers
@@ -417,7 +426,7 @@ def get_badge_stars(url):
     elif url == BADGE_FOUR or url == BADGE_FOUR2:
         return BADGE_FOUR_TXT
     else:
-        print("ERROR: Missing badge ID: " + url)
+        print("ERROR:: logfileMOOC.get_badge_stars(): Missing badge ID: " + url)
 
 '''
 Finds what the topic match percentage was given the topic match sentence
