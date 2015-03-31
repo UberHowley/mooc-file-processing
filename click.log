@@ -1,0 +1,6 @@
+{"level":"info","message":"<DELIMITER><i>helper_id</i><DELIMITER><i>instance_id</i><DELIMITER>http://www.outlook.com<DELIMITER>","timestamp":"2014-10-04T16:35:55.822Z"}
+{"level":"info","message":"<DELIMITER><i>helper_id</i><DELIMITER><i>instance_id</i><DELIMITER>http://www.google.com<DELIMITER>","timestamp":"2014-12-04T16:35:45.863Z"}
+{"level":"info","message":"<DELIMITER><i>1234567</i><DELIMITER><i>1239567891011122</i><DELIMITER>http://www.yahoo.com<DELIMITER>","timestamp":"2014-12-06T14:58:58.385Z"}
+{"level":"info","message":"<DELIMITER><i>2222222</i><DELIMITER><i>1234527891111121</i><DELIMITER>http://www.amazon.com<DELIMITER>","timestamp":"2014-12-08T00:25:38.768Z"}
+{"level":"info","message":"<DELIMITER><i>2222222</i><DELIMITER><i>1234527891111121</i><DELIMITER>http://www.amazon.com<DELIMITER>","timestamp":"2014-12-08T00:25:38.898Z"}
+{"level":"info","message":"<DELIMITER><i>2222222</i><DELIMITER><i>1234527891111121</i><DELIMITER>http://www.amazon.com<DELIMITER>","timestamp":"2014-12-08T00:25:39.852Z"}

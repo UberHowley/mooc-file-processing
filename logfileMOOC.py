@@ -15,6 +15,7 @@ FILENAME_HELPERLOG = utils.FILENAME_HELPERLOG
 FILENAME_SELECTIONLOG = utils.FILENAME_SELECTIONLOG
 FILENAME_VOTELOG = utils.FILENAME_VOTELOG
 FILENAME_USERLOG = utils.FILENAME_USERLOG
+FILENAME_CLICKLOG = utils.FILENAME_CLICKLOG
 EXTENSION_LOGFILE = utils.EXTENSION_LOGFILE
 EXTENSION_PROCESSED = utils.EXTENSION_PROCESSED
 
@@ -55,7 +56,8 @@ dict_sentence = {}
 dict_voting = {}
 dict_user_id = {}
 
-dict_all_instances = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
+instances_by_dupkey = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
+instances_by_id = {}  # instance ID -> instance object
 dict_all_helpers = defaultdict(list)  # instance_id -> list (3) helper logfile entries to remove duplicates from later
 dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
 list_no_duplicates = []  # a list of instances with duplicates removed
@@ -73,6 +75,7 @@ def run():
     proc_selection()
     proc_helper()
     proc_vote()
+    proc_click()
 
     remove_duplicates()  # remove duplicates from user.log and helper.log
 
@@ -122,16 +125,19 @@ def proc_user():
             col_helper2 = array_line[9]
             col_ques_title = array_line[10]
             col_ques_body = array_line[11]
-            col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
+            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_time = get_time(array_line[len(array_line) - 1])
             user_instance = QHInstance(col_user_id, col_instance_id, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body,col_date, col_time)
+
+            if len(array_line) > 13: #  it has an extra column for a URL
+                setattr(user_instance,'url',array_line[12])
 
             # keeping track of instances for printing late (if in correct date range)
             # store instance if it's during the right time period
             # AND if it's not one of the researchers' actions
             # AND only if the message body is longer than __ characters.
             if is_during_course(col_date) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
-                dict_all_instances[user_instance.get_duplicate_key()].append(user_instance)
+                instances_by_dupkey[user_instance.get_duplicate_key()].append(user_instance)
                 # TODO: Because we're using a dict here, we lose all timestamp ordering
 
             # all duplicates get added to our condition dictionaries
@@ -141,6 +147,8 @@ def proc_user():
             dict_sentence[col_instance_id] = col_irrelevant_sentence
             dict_voting[col_instance_id] = col_voting
             dict_user_id[col_instance_id] = col_userid_shown
+
+            instances_by_id[col_instance_id] = user_instance  # need this for the click.log
 
             # Add helper IDs to dictionary of instances to helpers
             dict_helpers[col_instance_id].append(col_helper0)
@@ -173,7 +181,7 @@ def proc_helper():
             col_irrel_sentence = "unknown"  # This was missing in the logs!
             col_num_weeks = get_num_weeks(col_rec_sentence)
             col_topic_match = get_topic_match(col_rec_sentence)
-            col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
+            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_time = get_time(array_line[len(array_line) - 1])
 
             # Constructing the new helper logfile line
@@ -218,7 +226,7 @@ def proc_selection():
             array_line = line.split(CONST_DELIMITER)
             col_instance_id = array_line[0]
             col_helper_selected = array_line[1]
-            col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
+            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_time = get_time(array_line[len(array_line) - 1])
 
             # Constructing the new selection logfile line
@@ -269,12 +277,12 @@ def proc_vote():
             array_line = line.split(CONST_DELIMITER)
             col_helper_id = array_line[0]
             col_instance_id = array_line[1]
-            colVote = array_line[2]
-            col_date = get_date(array_line[len(array_line) - 1])  # Due to some wonky extra column with a url
+            col_vote = array_line[2]
+            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_time = get_time(array_line[len(array_line) - 1])
 
             # Constructing the new vote logfile line
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + colVote + CONST_DELIMITER
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_vote + CONST_DELIMITER
             line += col_date + CONST_DELIMITER + col_time
 
             # only write line if it's in our date range
@@ -285,13 +293,62 @@ def proc_vote():
     file_out.close()
 
 '''
+A line in the Click Log represents each instance a Helper up or downvotes a QuickHelp request.
+{"level":"info","message":"<DELIMITER><i>helper_id</i><DELIMITER><i>instance_id</i><DELIMITER>https://www.edx.org//courses/UTArlingtonX/LINK5.10x/3T2014/discussion/forum/8d9482b366ae4999b706b2d7372d8393/threads/54808da7a2a525e05300156b<DELIMITER>","timestamp":"2014-12-04T16:35:45.863Z"}
+'''
+def proc_click():
+    file_out = open(FILENAME_CLICKLOG+EXTENSION_PROCESSED,'w')
+    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_DATE_SENT+CONST_DELIMITER+utils.COL_TIME_SENT+CONST_DELIMITER+utils.COL_DATE_CLICKED+CONST_DELIMITER+utils.COL_TIME_CLICKED+CONST_DELIMITER+CONST_DELIMITER+utils.COL_QTITLE+CONST_DELIMITER+utils.COL_QBODY+CONST_DELIMITER+utils.COL_URL+"\n")
+
+    with open(FILENAME_CLICKLOG+EXTENSION_LOGFILE,'r') as f:
+        for line in f:
+            line = line[len(CONST_LINESTART): len(line)]  # Cut off the extra chars from beginning
+            line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
+            line = line.replace("<i>", '')  # Click.log has some HTML to remove
+            line = line.replace("</i>", '')
+            line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
+
+            array_line = line.split(CONST_DELIMITER)
+            col_helper_id = array_line[0]
+            col_instance_id = array_line[1]
+            col_url = array_line[2]
+            col_date_clicked = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+            col_time_clicked = get_time(array_line[len(array_line) - 1])
+
+            # Retrieving timestamp when URL was sent
+            col_date_sent = ""
+            col_time_sent = ""
+            qtitle = ""
+            qbody = ""
+            if col_instance_id in instances_by_id:  # instance id might be 'instance_id'
+                col_date_sent = getattr(instances_by_id[col_instance_id], 'date')
+                col_time_sent = getattr(instances_by_id[col_instance_id], 'time')
+                qtitle = getattr(instances_by_id[col_instance_id], 'question_title')
+                qbody = getattr(instances_by_id[col_instance_id], 'question_body')
+            else:
+                print("WARNING: Encountered instance ID in " + FILENAME_CLICKLOG+EXTENSION_LOGFILE+" that is not in " + FILENAME_USERLOG+EXTENSION_LOGFILE+": " + col_instance_id)
+
+            # Constructing the new vote logfile line
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER
+            line += col_date_sent + CONST_DELIMITER + col_time_sent + CONST_DELIMITER + col_date_clicked + CONST_DELIMITER
+            line += col_time_clicked + CONST_DELIMITER + qtitle + CONST_DELIMITER + qbody + CONST_DELIMITER + col_url
+
+            # only write line if the email with URL was sent in our date range
+            if col_instance_id in instances_by_id and is_during_course(col_date_sent):
+                file_out.write(line+'\n')
+                # TODO: there's duplicates in the click logs from clicking several times that need to be removed
+            #print(line)
+    print("Done processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE)
+    file_out.close()
+
+'''
  Removes duplicates from our list of instances, based on whatever key was used in duplicate_instances
  Also removes duplicates from our helper logs
 '''
 def remove_duplicates():
-    for list_duplicates in dict_all_instances:  # iterate through each duplicate-arranged list
+    for list_duplicates in instances_by_dupkey:  # iterate through each duplicate-arranged list
         selected_dup = None  # instance with a selection, otherwise use only first one
-        for dup in dict_all_instances[list_duplicates]:  # for each instance object in these duplicates
+        for dup in instances_by_dupkey[list_duplicates]:  # for each instance object in these duplicates
             if getattr(dup, utils.COL_NUMHELPERS, 0) > 0:  # If it has helpers selected, it's the one
                 selected_dup = dup
             elif selected_dup is None:  # we have no selected one, so let's make a default
