@@ -6,6 +6,7 @@ __project__ = 'processMOOC'
 import utilsMOOC as utils
 import sys
 import fileinput
+import copy
 import datetime
 from collections import defaultdict
 from QHInstance import QHInstance
@@ -84,10 +85,11 @@ def run():
     file_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
-        setattr(qh_instance, utils.COL_NUMHELPERS, dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
+        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
         line = qh_instance.to_string(delimiter=CONST_DELIMITER)
         file_out.write(line+'\n')
     file_out.close()
+    print("Number of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+"\n")
 
     # helper.log written at end so as to only remove duplicates once
@@ -129,20 +131,29 @@ def proc_user():
             col_ques_body = array_line[11]
             col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_time = get_time(array_line[len(array_line) - 1])
-            user_instance = QHInstance(col_user_id, col_instance_id, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body,col_date, col_time)
 
-            if len(array_line) > 13: #  it has an extra column for a URL
-                setattr(user_instance,'url',array_line[12])
-
+            #  it has an extra column for a URL
+            col_url = ""
+            if len(array_line) > 13:
+                col_url = array_line[12]
             # if the helper IDs are greater than the minimum, this is likely a TA version instance
+            col_version = utils.CONST_TA
             if (int(col_helper0) > utils.CONST_MIN_USERID or int(col_helper1) > utils.CONST_MIN_USERID or int(col_helper2) > utils.CONST_MIN_USERID):
-                setattr(user_instance,'version',utils.CONST_STUDENT)
+                col_version = utils.CONST_STUDENT
+
+            # Create QHInstance
+            user_instance = QHInstance(col_user_id, col_instance_id, col_version, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body, col_url, col_date, col_time)
+
 
             # keeping track of instances for printing late (if in correct date range)
             # store instance if it's during the right time period
             # AND if it's not one of the researchers' actions
             # AND only if the message body is longer than __ characters.
             if is_during_course(col_date) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
+                if not instances_by_dupkey.get(user_instance.get_duplicate_key(), False):  # This is a new instance
+                    print("New instance: " + user_instance.get_duplicate_key())
+                else:
+                    print("Old instance: " + user_instance.get_duplicate_key())
                 instances_by_dupkey[user_instance.get_duplicate_key()].append(user_instance)
                 # TODO: Because we're using a dict here, we lose all timestamp ordering
 
@@ -359,17 +370,72 @@ def proc_click():
  Also removes duplicates from our helper logs
 '''
 def remove_duplicates():
-    for list_duplicates in instances_by_dupkey:  # iterate through each duplicate-arranged list
-        selected_dup = None  # instance with a selection, otherwise use only first one
-        for dup in instances_by_dupkey[list_duplicates]:  # for each instance object in these duplicates
+    for duplicate_key in instances_by_dupkey:  # iterate through each key in our duplicate-arranged list
+        selected_dup = None  # instance with a selection (the one shown)
+        for dup in instances_by_dupkey[duplicate_key]:  # for each instance object in these duplicates
             if getattr(dup, utils.COL_NUMHELPERS, 0) > 0:  # If it has helpers selected, it's the one
                 selected_dup = dup
-            elif selected_dup is None:  # we have no selected one, so let's make a default
-                selected_dup = dup  # using first one as default
-        if selected_dup is not None:
-            list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
-            list_no_dups_helpers.extend(dict_all_helpers[getattr(selected_dup, 'instance_id')])  # Record the 3 helper lines for our one selected instance
+        if selected_dup is None:
+                selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
+        list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
+        list_no_dups_helpers.extend(dict_all_helpers[getattr(selected_dup, 'instance_id')])  # Record the 3 helper lines for our one selected instance
+
+        if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
+            global count_repeat
+            count_repeat += len(instances_by_dupkey[duplicate_key])-1
     return list_no_duplicates
+
+'''
+ Given a list of duplicates, return a QHInstance that only has entries for columns
+ that have identical values for all items in the list (i.e. "isBadgeShown" is 0 for all instances, etc)
+'''
+def create_new_duplicate(duplicates):
+    # Creating our default duplicate object to return
+    new_duplicate = copy.copy(duplicates[0])
+
+    if len(duplicates) > 1:  # we have [several] duplicates
+        badge = getattr(new_duplicate, 'cond_badge')
+        sentence = getattr(new_duplicate,'cond_irrelevant_sentence')
+        voting = getattr(new_duplicate, 'cond_voting')
+        #anon_img = getattr(new_duplicate, 'cond_anon_img')  # Didn't implement the image condition, so don't worry about it
+        uid = getattr(new_duplicate, 'cond_user_id')
+        h0 = getattr(new_duplicate, 'id_helper0')
+        h1 = getattr(new_duplicate, 'id_helper1')
+        h2 = getattr(new_duplicate, 'id_helper2')
+
+        same_badge = True
+        same_sentence = True
+        same_voting = True
+        #same_img = True  # Didn't implement the image condition, so don't worry about it
+        same_uid = True
+        same_h0 = True
+        same_h1 = True
+        same_h2 = True
+
+        for dup in duplicates:  # iterate through each duplicate-arranged list
+            # Only check if they've been the same so far...
+            if same_badge and not badge == getattr(dup, 'cond_badge'):  # attribute is not the same
+                same_badge = False
+                setattr(new_duplicate, 'cond_badge', "")
+            if same_sentence and not sentence == getattr(dup, 'cond_irrelevant_sentence'):  # attribute is not the same
+                same_sentence = False
+                setattr(new_duplicate, 'cond_irrelevant_sentence', "")
+            if same_voting and not voting == getattr(dup, 'cond_voting'):  # attribute is not the same
+                same_voting = False
+                setattr(new_duplicate, 'cond_voting', "")
+            if same_uid and not uid == getattr(dup, 'cond_user_id'):  # attribute is not the same
+                same_uid = False
+                setattr(new_duplicate, 'cond_user_id', "")
+            if same_h0 and not h0 == getattr(dup, 'id_helper0'):  # attribute is not the same
+                same_h0 = False
+                setattr(new_duplicate, 'id_helper0', "")
+            if same_h1 and not h1 == getattr(dup, 'id_helper1'):  # attribute is not the same
+                same_h1 = False
+                setattr(new_duplicate, 'id_helper1', "")
+            if same_h2 and not h2 == getattr(dup, 'id_helper2'):  # attribute is not the same
+                same_h2 = False
+                setattr(new_duplicate, 'id_helper2', "")
+    return new_duplicate
 
 '''
 Determine if given date is within the range of dates the course took place
