@@ -389,14 +389,7 @@ def is_during_course(instance_date):
 Determine if given user is one of the researchers
 '''
 def is_researcher(userID):
-    # 5542424 - rb
-    # 5556926 - d
-    # 5529557 - of
-    # 2030452 - dg
-    # 4480312 - sj
-    list_researchers = {5542424, 5556926, 5529557, 2030452, 4480312} # some additional researcher IDs
-
-    if int(userID) < 0 or int(userID) in list_researchers: # TAs and researchers had userIDs less than 0
+    if int(userID) < 0 or int(userID) in utils.exclude_ids: # TAs and researchers had userIDs less than 0
         return True
     else: # Not a researcher!
         return False

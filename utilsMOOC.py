@@ -25,6 +25,14 @@ CONST_LAST_DAY = datetime.date(2014, 12, 17)
 # limiting student user IDs
 CONST_MIN_USERID = 0
 
+# exclude these [researcher] IDs:
+    # 5556926 - d
+    # 5529557 - of
+    # 5542424 - rb
+    # 2030452 - dg
+    # 4480312 - sj
+exclude_ids = {4, 5, 100, 200, 300, 400, 5529617, 5384681, 5556926, 5529557, 5553363, 5542424, 2030452, 4480312}
+
 # COLUMN HEADER NAMES
 COL_USERID = "userID"
 COL_INSTANCEID = "instanceID"
