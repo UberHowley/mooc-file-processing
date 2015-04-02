@@ -322,7 +322,7 @@ def proc_click():
     print("Processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE)
 
     file_out = open(FILENAME_CLICKLOG+EXTENSION_PROCESSED,'w')
-    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_DATE_SENT+CONST_DELIMITER+utils.COL_TIME_SENT+CONST_DELIMITER+utils.COL_DATE_CLICKED+CONST_DELIMITER+utils.COL_TIME_CLICKED+CONST_DELIMITER+CONST_DELIMITER+utils.COL_QTITLE+CONST_DELIMITER+utils.COL_QBODY+CONST_DELIMITER+utils.COL_URL+"\n")
+    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_DATE_SENT+CONST_DELIMITER+utils.COL_TIME_SENT+CONST_DELIMITER+utils.COL_DATE_CLICKED+CONST_DELIMITER+utils.COL_TIME_CLICKED+CONST_DELIMITER+utils.COL_QTITLE+CONST_DELIMITER+utils.COL_QBODY+CONST_DELIMITER+utils.COL_URL+"\n")
 
     with open(FILENAME_CLICKLOG+EXTENSION_LOGFILE,'r') as f:
         for line in f:
@@ -353,8 +353,8 @@ def proc_click():
                 print("WARNING: Encountered instance ID in " + FILENAME_CLICKLOG+EXTENSION_LOGFILE+" that is not in " + FILENAME_USERLOG+EXTENSION_LOGFILE+": " + col_instance_id)
 
             # Constructing the new vote logfile line
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER
-            line += col_date_sent + CONST_DELIMITER + col_time_sent + CONST_DELIMITER + col_date_clicked + CONST_DELIMITER
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_date_sent + CONST_DELIMITER
+            line += col_time_sent + CONST_DELIMITER + col_date_clicked + CONST_DELIMITER
             line += col_time_clicked + CONST_DELIMITER + qtitle + CONST_DELIMITER + qbody + CONST_DELIMITER + col_url
 
             # only write line if the email with URL was sent in our date range
