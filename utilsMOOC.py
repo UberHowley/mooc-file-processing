@@ -22,6 +22,9 @@ CONST_DELIMITER = ","
 CONST_FIRST_DAY = datetime.date(2014, 10, 27)  # the first day we got the system working properly
 CONST_LAST_DAY = datetime.date(2014, 12, 17)
 
+# limiting student user IDs
+CONST_MIN_USERID = 0
+
 # COLUMN HEADER NAMES
 COL_USERID = "userID"
 COL_INSTANCEID = "instanceID"
@@ -40,6 +43,9 @@ COL_HELPER0 = "helper0"
 COL_HELPER1 = "helper1"
 COL_HELPER2 = "helper2"
 COL_NUMHELPERS = "numHelpersSelected"
+COL_VERSION = "version"
+CONST_TA = "TA"
+CONST_STUDENT = "student"
 # helper.log
 COL_HELPERID = "helperUserID"
 COL_PREVHELPREQ = "NumPrevHelpRequests"

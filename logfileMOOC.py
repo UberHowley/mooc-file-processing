@@ -134,6 +134,10 @@ def proc_user():
             if len(array_line) > 13: #  it has an extra column for a URL
                 setattr(user_instance,'url',array_line[12])
 
+            # if the helper IDs are greater than the minimum, this is likely a TA version instance
+            if (int(col_helper0) > utils.CONST_MIN_USERID or int(col_helper1) > utils.CONST_MIN_USERID or int(col_helper2) > utils.CONST_MIN_USERID):
+                setattr(user_instance,'version',utils.CONST_STUDENT)
+
             # keeping track of instances for printing late (if in correct date range)
             # store instance if it's during the right time period
             # AND if it's not one of the researchers' actions
