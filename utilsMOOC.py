@@ -18,7 +18,8 @@ EXTENSION_PROCESSED = ".csv"
 CONST_DELIMITER = ","
 
 # limiting date
-CONST_FIRST_DAY = datetime.date(2014, 10, 20)
+# CONST_FIRST_DAY = datetime.date(2014, 10, 20)  # actual first day of the course
+CONST_FIRST_DAY = datetime.date(2014, 10, 27)  # the first day we got the system working properly
 CONST_LAST_DAY = datetime.date(2014, 12, 17)
 
 # COLUMN HEADER NAMES
