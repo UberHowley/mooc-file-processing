@@ -129,8 +129,15 @@ def proc_user():
             col_helper2 = array_line[9]
             col_ques_title = array_line[10]
             col_ques_body = array_line[11]
-            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            col_time = get_time(array_line[len(array_line) - 1])
+
+            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+            try:
+                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError as err:
+                print(col_timestamp, err)
+            col_date = col_timestamp.date()
+            col_time = col_timestamp.time()
+
 
             #  it has an extra column for a URL
             col_url = ""
@@ -142,7 +149,7 @@ def proc_user():
                 col_version = utils.CONST_STUDENT
 
             # Create QHInstance
-            user_instance = QHInstance(col_user_id, col_instance_id, col_version, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body, col_url, col_date, col_time)
+            user_instance = QHInstance(col_user_id, col_instance_id, col_version, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body, col_url, col_timestamp)
 
 
             # keeping track of instances for printing late (if in correct date range)
@@ -150,12 +157,7 @@ def proc_user():
             # AND if it's not one of the researchers' actions
             # AND only if the message body is longer than __ characters.
             if is_during_course(col_date) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
-                if not instances_by_dupkey.get(user_instance.get_duplicate_key(), False):  # This is a new instance
-                    print("New instance: " + user_instance.get_duplicate_key())
-                else:
-                    print("Old instance: " + user_instance.get_duplicate_key())
                 instances_by_dupkey[user_instance.get_duplicate_key()].append(user_instance)
-                # TODO: Because we're using a dict here, we lose all timestamp ordering
 
             # all duplicates get added to our condition dictionaries
             # since helper.log needs it (i.e., the first entry isn't
@@ -197,14 +199,21 @@ def proc_helper():
             col_irrel_sentence = "unknown"  # This was missing in the logs!
             col_num_weeks = get_num_weeks(col_rec_sentence)
             col_topic_match = get_topic_match(col_rec_sentence)
-            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            col_time = get_time(array_line[len(array_line) - 1])
+
+            # Processing the timestamp into a datetime object
+            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+            try:
+                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError as err:
+                print(col_timestamp, err)
+            col_date = col_timestamp.date()
+            col_time = col_timestamp.time()
 
             # Constructing the new helper logfile line
             line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER
             line += col_badge_shown + CONST_DELIMITER + col4 + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
             line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
-            line += col_date + CONST_DELIMITER + col_time
+            line += str(col_date) + CONST_DELIMITER + str(col_time)
 
             # determine if this helper was selected
             was_selected = 0
@@ -244,8 +253,15 @@ def proc_selection():
             array_line = line.split(CONST_DELIMITER)
             col_instance_id = array_line[0]
             col_helper_selected = array_line[1]
-            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            col_time = get_time(array_line[len(array_line) - 1])
+
+            # Processing the timestamp into a datetime object
+            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+            try:
+                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError as err:
+                print(col_timestamp, err)
+            col_date = col_timestamp.date()
+            col_time = col_timestamp.time()
 
             # Constructing the new selection logfile line
             line = col_instance_id + CONST_DELIMITER + col_helper_selected + CONST_DELIMITER
@@ -269,7 +285,7 @@ def proc_selection():
                 dict_num_helpers[col_instance_id] = int(dict_num_helpers.get(col_instance_id, 0)) + 1  # add one to our number of helpers selected
 
             # continue...
-            line += CONST_DELIMITER + col_date + CONST_DELIMITER + col_time
+            line += CONST_DELIMITER + str(col_date) + CONST_DELIMITER + str(col_time)
 
             # only write line if it's in our date range
             if is_during_course(col_date):
@@ -300,12 +316,19 @@ def proc_vote():
             col_helper_id = array_line[0]
             col_instance_id = array_line[1]
             col_vote = array_line[2]
-            col_date = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            col_time = get_time(array_line[len(array_line) - 1])
+
+            # Processing the timestamp into a datetime object
+            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+            try:
+                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError as err:
+                print(col_timestamp, err)
+            col_date = col_timestamp.date()
+            col_time = col_timestamp.time()
 
             # Constructing the new vote logfile line
             line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_vote + CONST_DELIMITER
-            line += col_date + CONST_DELIMITER + col_time
+            line += str(col_date) + CONST_DELIMITER + str(col_time)
 
             # only write line if it's in our date range
             if is_during_course(col_date):
@@ -336,8 +359,15 @@ def proc_click():
             col_helper_id = array_line[0]
             col_instance_id = array_line[1]
             col_url = array_line[2]
-            col_date_clicked = get_date(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            col_time_clicked = get_time(array_line[len(array_line) - 1])
+
+            # Processing the timestamp into a datetime object
+            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+            try:
+                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError as err:
+                print(col_timestamp, err)
+            col_date_clicked = col_timestamp.date()
+            col_time_clicked = col_timestamp.time()
 
             # Retrieving timestamp when URL was sent
             col_date_sent = ""
@@ -345,17 +375,17 @@ def proc_click():
             qtitle = ""
             qbody = ""
             if col_instance_id in instances_by_id:  # instance id might be 'instance_id'
-                col_date_sent = getattr(instances_by_id[col_instance_id], 'date')
-                col_time_sent = getattr(instances_by_id[col_instance_id], 'time')
+                col_date_sent = getattr(instances_by_id[col_instance_id], 'timestamp').date()
+                col_time_sent = getattr(instances_by_id[col_instance_id], 'timestamp').time()
                 qtitle = getattr(instances_by_id[col_instance_id], 'question_title')
                 qbody = getattr(instances_by_id[col_instance_id], 'question_body')
             else:
                 print("WARNING: Encountered instance ID in " + FILENAME_CLICKLOG+EXTENSION_LOGFILE+" that is not in " + FILENAME_USERLOG+EXTENSION_LOGFILE+": " + col_instance_id)
 
             # Constructing the new vote logfile line
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + col_date_sent + CONST_DELIMITER
-            line += col_time_sent + CONST_DELIMITER + col_date_clicked + CONST_DELIMITER
-            line += col_time_clicked + CONST_DELIMITER + qtitle + CONST_DELIMITER + qbody + CONST_DELIMITER + col_url
+            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER + str(col_date_sent) + CONST_DELIMITER
+            line += str(col_time_sent) + CONST_DELIMITER + str(col_date_clicked) + CONST_DELIMITER
+            line += str(col_time_clicked) + CONST_DELIMITER + qtitle + CONST_DELIMITER + qbody + CONST_DELIMITER + col_url
 
             # only write line if the email with URL was sent in our date range
             if col_instance_id in instances_by_id and is_during_course(col_date_sent):
@@ -441,10 +471,8 @@ def create_new_duplicate(duplicates):
 Determine if given date is within the range of dates the course took place
 '''
 def is_during_course(instance_date):
-    if len(instance_date) == 10:
-        array_date = instance_date.split("-")
-        date_converted = datetime.date(int(array_date[0]), int(array_date[1]), int(array_date[2]))
-        if CONST_LAST_DAY >= date_converted >= CONST_FIRST_DAY:
+    if instance_date is not None:
+        if CONST_LAST_DAY >= instance_date >= CONST_FIRST_DAY:
             return True
         else:  # Not in given course date range
             return False
@@ -461,18 +489,12 @@ def is_researcher(userID):
         return False
 
 '''
-Gets the date from a messy timestamp in the logfiles
+Cleans the date from a messy timestamp in the logfiles
 '''
-def get_date(tstamp):
+def clean_timestamp(tstamp):
     tstamp = tstamp[tstamp.index(':')+1: (len(tstamp)-2)].replace("\"",'')
-    return tstamp[0:tstamp.find("T")]
-
-'''
-Gets the time from a messy timestamp in the logfiles
-'''
-def get_time(tstamp):
-    tstamp = tstamp[tstamp.index(':')+1: (len(tstamp)-2)].replace("\"",'')
-    return tstamp[tstamp.find("T")+1: len(tstamp)-1]
+    tstamp = tstamp.replace('Z', '')  # TODO: Haven't quite figured out how to convert the Z at the end
+    return tstamp
 
 '''
 Determines how many stars were on the badge, depending on badge URL
