@@ -485,10 +485,7 @@ def is_during_course(instance_date):
 Determine if given user is one of the researchers
 '''
 def is_researcher(userID):
-    if int(userID) < 0 or int(userID) in utils.exclude_ids: # TAs and researchers had userIDs less than 0
-        return True
-    else: # Not a researcher!
-        return False
+    return int(userID) < utils.CONST_MIN_USERID or int(userID) in utils.exclude_ids # TAs and researchers had userIDs less than 0
 
 '''
 Cleans the date from a messy timestamp in the logfiles
