@@ -4,8 +4,6 @@ __author__ = 'IH'
 __project__ = 'processMOOC'
 
 import utilsMOOC as utils
-import sys
-import fileinput
 import copy
 import datetime
 from collections import defaultdict
@@ -62,7 +60,6 @@ instances_by_id = {}  # instance ID -> instance object
 dict_all_helpers = defaultdict(list)  # instance_id -> list (3) helper logfile entries to remove duplicates from later
 dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
 list_no_duplicates = []  # a list of instances with duplicates removed
-list_no_dups_helpers = []  # a list of all helper instances with duplicates removed
 
 # TODO: command line input for column delimiters, dates, filenames, etc.
 
@@ -83,24 +80,23 @@ def run():
     # user.log must be written at the end, because we need info from select.log
     list_no_duplicates.sort(key=lambda r:r.timestamp)  # sort by timestamp
 
-    file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
-    file_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
+    # Writing to userfile and helperfile at the same time
+    userfile_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
+    userfile_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
+    helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
+    helperfile_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
+
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
         setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
         line = qh_instance.to_string(delimiter=CONST_DELIMITER)
-        file_out.write(line+'\n')
-    file_out.close()
-    print("Number of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
-    print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+"\n")
-
-    file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
-    # iterate through our list of helper instances without duplicates
-    for h_line in list_no_dups_helpers:
-        file_out.write(h_line + '\n')
-    file_out.close()
-    print("Done writing " + FILENAME_HELPERLOG+EXTENSION_LOGFILE+"\n")
+        for helper_line in dict_all_helpers[getattr(qh_instance, 'instance_id')]:
+            helperfile_out.write(helper_line+'\n')
+        userfile_out.write(line+'\n')
+    userfile_out.close()
+    helperfile_out.close()
+    print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+ " and " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
+    print("\tNumber of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
 
 '''
 A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers
@@ -409,8 +405,6 @@ def remove_duplicates():
         if selected_dup is None:
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
-        # Record the 3 helper lines for our one selected instance
-        list_no_dups_helpers.extend(dict_all_helpers[getattr(selected_dup, 'instance_id')])  # TODO: This is the reason helpers.csv isn't sorted by date
 
         if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
             global count_repeat
