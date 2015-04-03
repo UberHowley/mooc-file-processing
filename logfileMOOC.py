@@ -81,6 +81,8 @@ def run():
     remove_duplicates()  # remove duplicates from user.log and helper.log
 
     # user.log must be written at the end, because we need info from select.log
+    list_no_duplicates.sort(key=lambda r:r.timestamp)  # sort by timestamp
+
     file_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     file_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     for qh_instance in list_no_duplicates:
@@ -92,7 +94,6 @@ def run():
     print("Number of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+"\n")
 
-    # helper.log written at end so as to only remove duplicates once
     file_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
     file_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
     # iterate through our list of helper instances without duplicates
@@ -408,7 +409,8 @@ def remove_duplicates():
         if selected_dup is None:
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
-        list_no_dups_helpers.extend(dict_all_helpers[getattr(selected_dup, 'instance_id')])  # Record the 3 helper lines for our one selected instance
+        # Record the 3 helper lines for our one selected instance
+        list_no_dups_helpers.extend(dict_all_helpers[getattr(selected_dup, 'instance_id')])  # TODO: This is the reason helpers.csv isn't sorted by date
 
         if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
             global count_repeat
