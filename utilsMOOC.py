@@ -79,3 +79,6 @@ COL_DATE_SENT = COL_DATE+"UrlSent"
 COL_TIME_SENT = COL_TIME+"UrlSent"
 COL_DATE_CLICKED = COL_DATE+"UrlClicked"
 COL_TIME_CLICKED = COL_TIME+"UrlClicked"
+
+# statsMOOC
+FORMAT_LINE = "--------------------"
