@@ -32,16 +32,11 @@ CONST_FIRST_DAY = utils.CONST_FIRST_DAY
 CONST_LAST_DAY = utils.CONST_LAST_DAY
 
 # IMAGE VARIABLES
-BADGE_NONE = "http://erebor.lti.cs.cmu.edu/quickhelper/badges/blank.png"
-BADGE_NONE2 = "http://i62.tinypic.com/2mgqut2.jpg"
-BADGE_ONE = "http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper1.png"
-BADGE_ONE2 = "http://i61.tinypic.com/24q1jyr.jpg"
-BADGE_TWO = "http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper2.png"
-BADGE_TWO2 = "http://i58.tinypic.com/29yjuww.jpg"
-BADGE_THREE = "http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper3.png"
-BADGE_THREE2 = "http://i62.tinypic.com/214w7wl.jpg"
-BADGE_FOUR = "http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper4.png"
-BADGE_FOUR2 = "http://i58.tinypic.com/2cgymgh.jpg"
+BADGE_NONE = {"http://erebor.lti.cs.cmu.edu/quickhelper/badges/blank.png", "http://i62.tinypic.com/2mgqut2.jpg"}
+BADGE_ONE = {"http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper1.png", "http://i61.tinypic.com/24q1jyr.jpg"}
+BADGE_TWO = {"http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper2.png", "http://i58.tinypic.com/29yjuww.jpg"}
+BADGE_THREE = {"http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper3.png", "http://i62.tinypic.com/214w7wl.jpg"}
+BADGE_FOUR = {"http://erebor.lti.cs.cmu.edu/quickhelper/badges/helper4.png", "http://i58.tinypic.com/2cgymgh.jpg"}
 
 BADGE_NONE_TXT = "0"
 BADGE_ONE_TXT = "1"
@@ -68,11 +63,12 @@ list_sentences = []  # a list of a list of all words in post titles + post bodie
 
 # TODO: command line input for column delimiters, dates, filenames, etc.
 
-'''
-run function - calls the functions that do the processing for each kind of file
-user.log is processed first and then written to file at the end
-'''
 def run():
+    """
+    Call the functions that do the processing for each kind of file
+    user.log is processed first and then written to file at the end
+    :return: None
+    """
     # Process of files
     proc_user()
     proc_selection()
@@ -103,13 +99,15 @@ def run():
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+ " and " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
     print("\tNumber of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
 
-'''
-A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers
-shown is stored in the Helperfile Log).
-ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
-Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
-'''
 def proc_user():
+    """
+    Process the user log.
+    A line in the Userfile Log represents what user-level variables the user saw (specific information about individual
+    helpers shown is stored in the Helperfile Log).
+    ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
+    Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
+    :return: None
+    """
     print("Processing "+FILENAME_USERLOG+EXTENSION_LOGFILE)
 
     with open(FILENAME_USERLOG+EXTENSION_LOGFILE,'r') as f:
@@ -133,11 +131,7 @@ def proc_user():
             col_ques_body = array_line[11]
 
             # processing the timestamp
-            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            try:
-                col_timestamp=datetime.datetime.strptime(col_timestamp, '%Y-%m-%dT%H:%M:%S.%f')
-            except ValueError as err:
-                print(col_timestamp, err)
+            col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
 
             #  processing extra column with a URL
             col_url = ""
@@ -198,11 +192,13 @@ def proc_user():
             #print(user_instance.to_string(delimiter=CONST_DELIMITER))
     print("Done processing "+FILENAME_USERLOG+EXTENSION_LOGFILE+"\n")
 
-'''
-A line in the Helperfile Log represents all the information specific to the helper that the user saw.
-{"level":"info","message":"<DELIMITER>1<DELIMITER>1413061797181100<DELIMITER>8<DELIMITER>http://i58.tinypic.com/2cgymgh.jpg<DELIMITER>3<DELIMITER>This student has been participating in the course for 1 weeks and the matching of his/her interest and the topic of your query is 100.0 .<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
-'''
 def proc_helper():
+    """
+    Process the helper log file.
+    A line in the Helperfile Log represents all the information specific to the helper that the user saw.
+    ex: {"level":"info","message":"<DELIMITER>1<DELIMITER>1413061797181100<DELIMITER>8<DELIMITER>http://i58.tinypic.com/2cgymgh.jpg<DELIMITER>3<DELIMITER>This student has been participating in the course for 1 weeks and the matching of his/her interest and the topic of your query is 100.0 .<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
+    :return: None
+    """
     print("Processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE)
 
     with open(FILENAME_HELPERLOG+EXTENSION_LOGFILE, 'r') as f:
@@ -223,11 +219,7 @@ def proc_helper():
             col_topic_match = get_topic_match(col_rec_sentence)
 
             # Processing the timestamp into a datetime object
-            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            try:
-                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
-            except ValueError as err:
-                print(col_timestamp, err)
+            col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_date = col_timestamp.date()
             col_time = col_timestamp.time()
 
@@ -256,11 +248,13 @@ def proc_helper():
             #print(line)
     print("Done processing "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+"\n")
 
-'''
-A line in the Helperfile Log represents one (of three maximum) of the helpers selected by user
-{"level":"info","message":"<DELIMITER>11<DELIMITER>0<DELIMITER>","timestamp":"2014-10-11T21:09:57.211Z"}
-'''
 def proc_selection():
+    """
+    Process the selection log file.
+    A line in the Helperfile Log represents one (of three maximum) of the helpers selected by user
+    ex: {"level":"info","message":"<DELIMITER>11<DELIMITER>0<DELIMITER>","timestamp":"2014-10-11T21:09:57.211Z"}
+    :return:
+    """
     print("Processing "+FILENAME_SELECTIONLOG+EXTENSION_LOGFILE)
 
     file_out = open(FILENAME_SELECTIONLOG+EXTENSION_PROCESSED,'w')
@@ -277,11 +271,7 @@ def proc_selection():
             col_helper_selected = array_line[1]
 
             # Processing the timestamp into a datetime object
-            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            try:
-                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
-            except ValueError as err:
-                print(col_timestamp, err)
+            col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_date = col_timestamp.date()
             col_time = col_timestamp.time()
 
@@ -316,11 +306,13 @@ def proc_selection():
     print("Done processing "+FILENAME_SELECTIONLOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
-'''
-A line in the Upvote Log represents each instance a Helper up or downvotes a QuickHelp request.
-{"level":"info","message":"<DELIMITER>2231948<DELIMITER>1<DELIMITER>1<DELIMITER>","timestamp":"2014-10-11T06:05:13.668Z"}
-'''
 def proc_vote():
+    """
+    Process the vote log file.
+    A line in the Upvote Log represents each instance a Helper up or downvotes a QuickHelp request.
+    ex: {"level":"info","message":"<DELIMITER>2231948<DELIMITER>1<DELIMITER>1<DELIMITER>","timestamp":"2014-10-11T06:05:13.668Z"}
+    :return: None
+    """
     print("Processing "+FILENAME_VOTELOG+EXTENSION_LOGFILE)
 
     file_out = open(FILENAME_VOTELOG+EXTENSION_PROCESSED,'w')
@@ -340,11 +332,7 @@ def proc_vote():
             col_vote = array_line[2]
 
             # Processing the timestamp into a datetime object
-            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            try:
-                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
-            except ValueError as err:
-                print(col_timestamp, err)
+            col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_date = col_timestamp.date()
             col_time = col_timestamp.time()
 
@@ -359,11 +347,13 @@ def proc_vote():
     print("Done processing "+FILENAME_VOTELOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
-'''
-A line in the Click Log represents each instance a Helper up or downvotes a QuickHelp request.
-{"level":"info","message":"<DELIMITER><i>helper_id</i><DELIMITER><i>instance_id</i><DELIMITER>https://www.edx.org//courses/UTArlingtonX/LINK5.10x/3T2014/discussion/forum/8d9482b366ae4999b706b2d7372d8393/threads/54808da7a2a525e05300156b<DELIMITER>","timestamp":"2014-12-04T16:35:45.863Z"}
-'''
 def proc_click():
+    """
+    Process the click log file.
+    A line in the Click Log represents each instance a Helper up or downvotes a QuickHelp request.
+    {"level":"info","message":"<DELIMITER><i>helper_id</i><DELIMITER><i>instance_id</i><DELIMITER>https://www.edx.org//courses/UTArlingtonX/LINK5.10x/3T2014/discussion/forum/8d9482b366ae4999b706b2d7372d8393/threads/54808da7a2a525e05300156b<DELIMITER>","timestamp":"2014-12-04T16:35:45.863Z"}
+    :return: None
+    """
     print("Processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE)
 
     file_out = open(FILENAME_CLICKLOG+EXTENSION_PROCESSED,'w')
@@ -383,11 +373,7 @@ def proc_click():
             col_url = array_line[2]
 
             # Processing the timestamp into a datetime object
-            col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
-            try:
-                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
-            except ValueError as err:
-                print(col_timestamp, err)
+            col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             col_date_clicked = col_timestamp.date()
             col_time_clicked = col_timestamp.time()
 
@@ -418,11 +404,12 @@ def proc_click():
     file_out.close()
 
 '''
-Runs all posts through an LDA topic model, to determine the basic topic of the post.
-https://radimrehurek.com/gensim/tut1.html
-'''
-'''
 def lda_topic_model():
+    """
+    Runs all posts through an LDA topic model, to determine the basic topic of the post.
+    https://radimrehurek.com/gensim/tut1.html
+    :return: None
+    """
     num_topics = utils.NUM_LDA_TOPICS
     if num_topics < 0:
         num_topics = int(math.sqrt(len(list_sentences)))  # make our default be the sqrt of number of sentences we have
@@ -442,11 +429,12 @@ def lda_topic_model():
     lda = models.ldamodel.LdaModel(corpus=mm_corpus, id2word=dict_lda, num_topics=num_topics, update_every=1, chunksize=chunk_size, passes=1)
 '''
 
-'''
- Removes duplicates from our list of instances, based on whatever key was used in duplicate_instances
- Also removes duplicates from our helper logs
-'''
 def remove_duplicates():
+    """
+     Remove duplicates from our list of instances, based on whatever key was used in duplicate_instances
+    Also removes duplicate from our helper logs
+    :return: A list of QHInstances with all duplicates removed
+    """
     for duplicate_key in instances_by_dupkey:  # iterate through each key in our duplicate-arranged list
         selected_dup = None  # instance with a selection (the one shown)
         for dup in instances_by_dupkey[duplicate_key]:  # for each instance object in these duplicates
@@ -463,11 +451,13 @@ def remove_duplicates():
             count_repeat += len(instances_by_dupkey[duplicate_key])-1
     return list_no_duplicates
 
-'''
- Given a list of duplicates, return a QHInstance that only has entries for columns
- that have identical values for all items in the list (i.e. "isBadgeShown" is 0 for all instances, etc)
-'''
 def create_new_duplicate(duplicates):
+    """
+     Given a list of duplicates, return a QHInstance that only has entries for columns
+    that have identical values for all items in the list (i.e. "isBadgeShown" is 0 for all instances, etc)
+    :param duplicates: a list of items that are pre-determined to be duplicates
+    :return: a new QHInstance containing only info the duplicates share
+    """
     # Creating our default duplicate object to return
     new_duplicate = copy.copy(duplicates[0])
 
@@ -515,10 +505,12 @@ def create_new_duplicate(duplicates):
                 setattr(new_duplicate, 'id_helper2', "")
     return new_duplicate
 
-'''
-Determine if given date is within the range of dates the course took place
-'''
 def is_during_course(instance_date):
+    """
+    Determine if given date is within the range of dates the course took place
+    :param instance_date: date to check if it's in range
+    :return: True if given date is in our restricted time range
+    """
     if instance_date is not None:
         if CONST_LAST_DAY >= instance_date >= CONST_FIRST_DAY:
             return True
@@ -527,64 +519,81 @@ def is_during_course(instance_date):
     else:
         print("ERROR:: logfileMOOC.is_during_course(): Cannot process date column: " + instance_date)
         return False
-'''
-Determine if given user is one of the researchers
-'''
-def is_researcher(userID):
-    return int(userID) < utils.CONST_MIN_USERID or int(userID) in utils.exclude_ids # TAs and researchers had userIDs less than 0
 
-'''
-Cleans the date from a messy timestamp in the logfiles
-'''
-def clean_timestamp(tstamp):
-    tstamp = tstamp[tstamp.index(':')+1: (len(tstamp)-2)].replace("\"",'')
-    tstamp = tstamp.replace('Z', '')  # TODO: Haven't quite figured out how to convert the Z at the end
+def is_researcher(userID):
+    """
+    Check if given user is one of the researchers
+    :param userID: The user ID we want to see if it's a researcher/TA
+    :return: True if userID is that of a researcher
+    """
+    return int(userID) < utils.CONST_MIN_USERID or int(userID) in utils.exclude_ids  # TAs and researchers had userIDs less than 0
+
+def get_timestamp(tstamp):
+    """
+    Clean the timestamp from a messy string in the logfiles
+    :param tstamp: string containing the timestamp
+    :return: the datetime object
+    """
+    tstamp = tstamp[tstamp.index(':')+1: (len(tstamp)-2)].replace("\"",'')  # remove meta tags
+    tstamp = tstamp.replace('Z', '')  # TODO: Figure out how to convert the Z at the end
+    try:
+        tstamp = datetime.datetime.strptime(tstamp,'%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError as err:
+        print(tstamp, err)
     return tstamp
 
-'''
-Determines how many stars were on the badge, depending on badge URL
-'''
 def get_badge_stars(url):
-    if url == BADGE_NONE or url == BADGE_NONE2:
+    """
+    Determine how many stars were on the badge, depending on badge URL
+    :param url: the urlk of the image of the badge shown
+    :return: a string containing the number of stars in that badge
+    """
+    if url in BADGE_NONE:
         return BADGE_NONE_TXT
-    elif url == BADGE_ONE or url == BADGE_ONE2:
+    elif url in BADGE_ONE:
         return BADGE_ONE_TXT
-    elif url == BADGE_TWO or url == BADGE_TWO2:
+    elif url in BADGE_TWO:
         return BADGE_TWO_TXT
-    elif url == BADGE_THREE or url == BADGE_THREE2:
+    elif url in BADGE_THREE:
         return BADGE_THREE_TXT
-    elif url == BADGE_FOUR or url == BADGE_FOUR2:
+    elif url in BADGE_FOUR:
         return BADGE_FOUR_TXT
     else:
         print("ERROR:: logfileMOOC.get_badge_stars(): Missing badge ID: " + url)
 
-'''
-Finds what the topic match percentage was given the topic match sentence
-'''
 def get_topic_match(sentence):
+    """
+    Find what the topic match percentage was given the topic match sentence
+    :param sentence: the relevant sentence containing topic match info
+    :return: topic match percentage
+    """
     if sentence.find("Teaching Assistants") >= 0:
-        return "TA"
+        return utils.CONST_TA
     else:
         tm = sentence[len(sentence)-7:len(sentence)-1]
         tm = float(tm.strip("abcdefghijklmnopqrstuvwxyz% "))
-        if tm < 1:
+        if tm < 1:  # Turning decimals into percentage numbers
             tm = tm*100
         return str(tm)
 
-'''
-Finds how many weeks the helper's been around, given the topic match sentence
-'''
 def get_num_weeks(sentence):
+    """
+    Find how many weeks the helper's been around, given the topic match sentence
+    :param sentence: the relevant sentence containing the number of weeks info
+    :return: number of weeks been in the course
+    """
     if sentence.find("Teaching Assistants") >= 0:
-        return "TA"
+        return utils.CONST_TA
     else:
         return sentence[sentence.find("week")-2: sentence.find("week")]
 
-'''
-Cleans the string by removing all punctuation
-http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
-'''
 def clean_string(sentence):
+    """
+    Clean the string by removing all punctuation
+    http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+    :param sentence: the string potentially containing HTML and other non-alphanumerics
+    :return: the string cleaned of all tags, undesirables
+    """
     s = MLStripper()
     s.feed(sentence)
     no_html = s.get_data()
@@ -598,6 +607,9 @@ def clean_string(sentence):
     return texts
 
 class MLStripper(HTMLParser):
+    """
+    A class for stripping HTML tags from a string
+    """
     def __init__(self):
         super().__init__()
         self.reset()

@@ -6,10 +6,10 @@ import utilsMOOC as utils
 import matplotlib.pyplot as plt
 import seaborn as sba
 
-'''
-run function - coordinates the main statistical analyses
-'''
 def run():
+    """ run function - coordinates the main statistical analyses
+    :return: None
+    """
 
     # Exception handling in case the logfile doesn't exist
     try:

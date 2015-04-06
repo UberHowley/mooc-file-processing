@@ -6,9 +6,11 @@ import datetime
 import copy
 
 class QHInstance(object):
-    ' A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers shown is stored in the Helperfile Log).'
-    # ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
-    # Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
+    """
+    A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers shown is stored in the Helperfile Log).
+    ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
+    ex: Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
+    """
     user_id = "-1"
     instance_id = ""
     version = ""
@@ -25,8 +27,28 @@ class QHInstance(object):
     num_helpers_selected = 0
     timestamp = None
     url = ""
+    lda_topic = ""
 
     def __init__(self, uid, iid, cvers, cb, cis, cv, cai, cui, h0, h1, h2, qt, qb, u, ts):
+        """
+        Initialize a new QHInstance with the necessary information
+        :param uid: user id
+        :param iid: instance id
+        :param cvers: TA/student version
+        :param cb: badge condition
+        :param cis: irrelevant sentence condition
+        :param cv: voting condition
+        :param cai: anonymous image condition
+        :param cui: anonymous user id condition
+        :param h0: helper id at index 0
+        :param h1: helper id at index 1
+        :param h2: helper id at index 2
+        :param qt: question/post title
+        :param qb: question/post body
+        :param u: url
+        :param ts: timestamp
+        :return: None
+        """
         self.user_id = uid
         self.instance_id = iid
         self.version = cvers
@@ -43,33 +65,48 @@ class QHInstance(object):
         self.url = u
         self.timestamp = ts
 
-    '''
-     Overwriting the copy operator, probably not necessary as these are all primitive types
-    '''
     def __copy__(self):
+        """
+        Overwrite the copy operator (probably not necessary as these are all primitive types)
+        :return: None
+        """
         new_instance = type(self)(self.user_id, self.instance_id, self.version, self.cond_badge, self.cond_irrelevant_sentence, self.cond_voting, self.cond_anon_img, self.cond_user_id, self.id_helper0, self.id_helper1, self.id_helper2, self.question_title, self.question_body,self.url, self.timestamp)
         setattr(new_instance, 'version', self.version)
         setattr(new_instance, 'num_helpers_selected', self.num_helpers_selected)
         return new_instance
 
-    '''
-    Duplicates have the same author, question title, and date
-    '''
-    def is_duplicate(self,compare_to):
-        if self.user_id == compare_to.user_id and self.question_title == compare_to.question_title and self.timestamp.date() == compare_to.timestamp.date():
+
+    def is_duplicate(self, compare_to):
+        """
+        Determine if given instance is a duplicate
+        :param compare_to: the QHInstance we're comparing against for similarity
+        :return: True if the given item has the same duplicate key as self item
+        """
+        if self.get_duplicate_key == compare_to.get_duplicate_key():
             return True
         return False
 
-    '''
-    Returns an 'ID' that is the same as its duplicates
-    '''
     def get_duplicate_key(self):
+        """
+        Returns an 'ID' that is the same as its duplicates
+        :return: a key that it shares with its duplicates
+        """
         return self.user_id + self.question_title + str(self.timestamp.date())
 
     def get_headers(delimiter):
+        """
+        Retrieve column headers for a QHInstance object for printing
+        :param delimiter: character to split each column header
+        :return: None
+        """
         return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_VERSION + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_URL + delimiter +utils.COL_DATE + delimiter + utils.COL_TIME
 
     def to_string(self, delimiter):
+        """
+        Create a string for printing this QHInstance, coordinating with the headers
+        :param delimiter: character to split each column
+        :return: a string for printing this QHInstance, coordinating with the headers
+        """
         line = str(self.user_id) + delimiter + str(self.instance_id) + delimiter + str(self.version) + delimiter
         line += str(self.cond_badge) + delimiter + str(self.cond_irrelevant_sentence) + delimiter + str(self.cond_voting)
         line += delimiter + str(self.cond_anon_img) + delimiter + str(self.cond_user_id) + delimiter + str(self.id_helper0)
