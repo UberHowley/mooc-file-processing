@@ -27,6 +27,31 @@ def run():
     data[utils.COL_VERSION] = data[utils.COL_VERSION].astype('category')
     #print(data.tail())  # print a small sample of the data
 
+    user_input = input("> Print descriptive statistics? [y/n]: ")
+    if is_yes(user_input):
+        descriptive_stats(data)
+
+    user_input = input("> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
+    if is_yes(user_input):
+        # plotting the data
+        plt.hist(data.numHelpersSelected, bins=4, align='mid', facecolor='green')
+        plt.title("Histogram of Number of Helpers Selected")
+        plt.xlabel("Number of Helpers Selected (0,1,2,3)")
+        plt.ylabel("Count")
+        plt.show()
+
+def is_yes(str):
+    """ Return True if the given string contains a 'y'
+    :param str: a string, likely a user console input
+    :return: True if the string contains the letter 'y'
+    """
+    return 'y' in str.lower()
+
+def descriptive_stats(data):
+    """ Print descriptive statistics for give data frame
+    :param data: pandas dataframe we are exploring
+    :return: None
+    """
     # Summary of Number of Helpers Selected
     print(utils.FORMAT_LINE)
     print("Descriptive statistics for: \'" + utils.COL_NUMHELPERS+"\'")
@@ -56,13 +81,6 @@ def run():
     print("Counts & Mean " + utils.COL_NUMHELPERS + " for: \'" + utils.COL_VERSION+"\'")
     print(pd.concat([data.groupby(utils.COL_VERSION)[utils.COL_VERSION].count(), data.groupby(utils.COL_VERSION)[utils.COL_NUMHELPERS].mean()], axis=1))
     print(utils.FORMAT_LINE)
-
-    # plotting the data
-    plt.hist(data.numHelpersSelected, bins=4, align='mid', facecolor='green')
-    plt.title("Histogram of Number of Helpers Selected")
-    plt.xlabel("Number of Helpers Selected (0,1,2,3)")
-    plt.ylabel("Count")
-    plt.show()
 
 '''
 ...So that statsMOOC can act as either a reusable module, or as a standalone program.
