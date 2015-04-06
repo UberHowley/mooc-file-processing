@@ -11,7 +11,11 @@ run function - coordinates the main statistical analyses
 '''
 def run():
 
-    data = pd.io.parsers.read_csv(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED, encoding="utf-8-sig")
+    # Exception handling in case the logfile doesn't exist
+    try:
+        data = pd.io.parsers.read_csv(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED, encoding="utf-8-sig")
+    except OSError as e:
+        print("ERROR: " +str(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED) +" does not exist. Did you run logfileMOOC.py?")
 
     # make experimental conditions  categorical variables
     # TODO: Determine if this is necessary/desirable
