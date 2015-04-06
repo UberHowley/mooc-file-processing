@@ -3,6 +3,8 @@ __project__ = 'processMOOC'
 
 import pandas as pd
 import utilsMOOC as utils
+import matplotlib.pyplot as plt
+import seaborn as sba
 
 '''
 run function - coordinates the main statistical analyses
@@ -12,7 +14,7 @@ def run():
     data = pd.io.parsers.read_csv(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED, encoding="utf-8-sig")
 
     # make experimental conditions  categorical variables
-    # TODO: Not sure this is necessary/desirable
+    # TODO: Determine if this is necessary/desirable
     data[utils.COL_BADGE] = data[utils.COL_BADGE].astype('category')
     data[utils.COL_IRRELEVANT] = data[utils.COL_IRRELEVANT].astype('category')
     data[utils.COL_VOTING] = data[utils.COL_VOTING].astype('category')
@@ -33,7 +35,7 @@ def run():
     df_conditions = data[[utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION]]
     print(df_conditions.describe())
 
-    # Count/Descriptive Stats of individual conditions & mean num helpers selected of each (2^5) conditions
+    # Count/Descriptive Stats of individual conditions & mean num helps of each (2^5) conditions
     print(utils.FORMAT_LINE)
     print("Counts & Mean " + utils.COL_NUMHELPERS + " for: \'" + utils.COL_BADGE+"\'\n* should be even distribution")
     print(pd.concat([data.groupby(utils.COL_BADGE)[utils.COL_BADGE].count(), data.groupby(utils.COL_BADGE)[utils.COL_NUMHELPERS].mean()], axis=1))
@@ -50,6 +52,13 @@ def run():
     print("Counts & Mean " + utils.COL_NUMHELPERS + " for: \'" + utils.COL_VERSION+"\'")
     print(pd.concat([data.groupby(utils.COL_VERSION)[utils.COL_VERSION].count(), data.groupby(utils.COL_VERSION)[utils.COL_NUMHELPERS].mean()], axis=1))
     print(utils.FORMAT_LINE)
+
+    # plotting the data
+    plt.hist(data.numHelpersSelected, bins=4, align='mid', facecolor='green')
+    plt.title("Histogram of Number of Helpers Selected")
+    plt.xlabel("Number of Helpers Selected (0,1,2,3)")
+    plt.ylabel("Count")
+    plt.show()
 
 '''
 ...So that statsMOOC can act as either a reusable module, or as a standalone program.
