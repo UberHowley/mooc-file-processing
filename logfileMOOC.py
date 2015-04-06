@@ -6,8 +6,12 @@ __project__ = 'processMOOC'
 import utilsMOOC as utils
 import copy
 import datetime
+import re
+from html.parser import HTMLParser
+import math
 from collections import defaultdict
 from QHInstance import QHInstance
+#from gensim import corpora, models, similarities
 
 # LOGFILE NAMES
 FILENAME_HELPERLOG = utils.FILENAME_HELPERLOG
@@ -60,6 +64,7 @@ instances_by_id = {}  # instance ID -> instance object
 dict_all_helpers = defaultdict(list)  # instance_id -> list (3) helper logfile entries to remove duplicates from later
 dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
 list_no_duplicates = []  # a list of instances with duplicates removed
+list_sentences = []  # a list of a list of all words in post titles + post bodies, indices refer to Instances in list_no_duplicates
 
 # TODO: command line input for column delimiters, dates, filenames, etc.
 
@@ -127,16 +132,14 @@ def proc_user():
             col_ques_title = array_line[10]
             col_ques_body = array_line[11]
 
+            # processing the timestamp
             col_timestamp = clean_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
             try:
-                col_timestamp=datetime.datetime.strptime(col_timestamp,'%Y-%m-%dT%H:%M:%S.%f')
+                col_timestamp=datetime.datetime.strptime(col_timestamp, '%Y-%m-%dT%H:%M:%S.%f')
             except ValueError as err:
                 print(col_timestamp, err)
-            col_date = col_timestamp.date()
-            col_time = col_timestamp.time()
 
-
-            #  it has an extra column for a URL
+            #  processing extra column with a URL
             col_url = ""
             if len(array_line) > 13:
                 col_url = array_line[12]
@@ -144,6 +147,28 @@ def proc_user():
             col_version = utils.CONST_TA
             if (int(col_helper0) > utils.CONST_MIN_USERID or int(col_helper1) > utils.CONST_MIN_USERID or int(col_helper2) > utils.CONST_MIN_USERID):
                 col_version = utils.CONST_STUDENT
+
+            # turns 0 and 1 conditional variables into categorical variables
+            if int(col_badge_shown):
+                col_badge_shown = utils.VAL_IS
+            else:
+                col_badge_shown = utils.VAL_ISNOT
+            if int(col_irrelevant_sentence):
+                col_irrelevant_sentence = utils.VAL_IS
+            else:
+                col_irrelevant_sentence = utils.VAL_ISNOT
+            if int(col_voting):
+                col_voting = utils.VAL_IS
+            else:
+                col_voting = utils.VAL_ISNOT
+            if int(col_anon_img):
+                col_anon_img = utils.VAL_IS
+            else:
+                col_anon_img = utils.VAL_ISNOT
+            if int(col_userid_shown):
+                col_userid_shown = utils.VAL_IS
+            else:
+                col_userid_shown = utils.VAL_ISNOT
 
             # Create QHInstance
             user_instance = QHInstance(col_user_id, col_instance_id, col_version, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body, col_url, col_timestamp)
@@ -153,7 +178,7 @@ def proc_user():
             # store instance if it's during the right time period
             # AND if it's not one of the researchers' actions
             # AND only if the message body is longer than __ characters.
-            if is_during_course(col_date) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
+            if is_during_course(col_timestamp.date()) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
                 instances_by_dupkey[user_instance.get_duplicate_key()].append(user_instance)
 
             # all duplicates get added to our condition dictionaries
@@ -213,11 +238,11 @@ def proc_helper():
             line += str(col_date) + CONST_DELIMITER + str(col_time)
 
             # determine if this helper was selected
-            was_selected = 0
+            was_selected = utils.VAL_ISNOT
             if col_instance_id not in dict_helpers:  # that instance didn't occur in user.log
                 print("WARNING: instanceID in "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+" not found in " + FILENAME_USERLOG+EXTENSION_LOGFILE+", not writing to file: " + col_instance_id)
             elif col_helper_id in dict_selected_helpers[col_instance_id]:  # this ID was selected in selection.log
-                was_selected = 1
+                was_selected = utils.VAL_IS
             line += CONST_DELIMITER + str(was_selected)
 
             # retrieve experimental conditions from dict
@@ -393,6 +418,31 @@ def proc_click():
     file_out.close()
 
 '''
+Runs all posts through an LDA topic model, to determine the basic topic of the post.
+https://radimrehurek.com/gensim/tut1.html
+'''
+'''
+def lda_topic_model():
+    num_topics = utils.NUM_LDA_TOPICS
+    if num_topics < 0:
+        num_topics = int(math.sqrt(len(list_sentences)))  # make our default be the sqrt of number of sentences we have
+    chunk_size = int(len(list_sentences)/100)
+    if chunk_size < 1 :
+        chunk_size = 1  # small number of sentences
+
+    # remove words that appear only once
+    all_tokens = sum(list_sentences, [])
+    tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
+    texts = [[word for word in sentence if word not in tokens_once]
+        for sentence in list_sentences]
+
+    dict_lda = corpora.Dictionary(texts)
+    mm_corpus = [dict_lda.doc2bow(text) for text in texts]
+    print("NOTE: " +mm_corpus)
+    lda = models.ldamodel.LdaModel(corpus=mm_corpus, id2word=dict_lda, num_topics=num_topics, update_every=1, chunksize=chunk_size, passes=1)
+'''
+
+'''
  Removes duplicates from our list of instances, based on whatever key was used in duplicate_instances
  Also removes duplicates from our helper logs
 '''
@@ -405,6 +455,8 @@ def remove_duplicates():
         if selected_dup is None:
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
+        # Store this sentence, too
+        list_sentences.append(clean_string(getattr(selected_dup, 'question_title', '')+' '+getattr(selected_dup,'question_body','')))
 
         if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
             global count_repeat
@@ -529,7 +581,37 @@ def get_num_weeks(sentence):
         return sentence[sentence.find("week")-2: sentence.find("week")]
 
 '''
+Cleans the string by removing all punctuation
+http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+'''
+def clean_string(sentence):
+    s = MLStripper()
+    s.feed(sentence)
+    no_html = s.get_data()
+    # This code apparently removes all text in a string without any HTML
+    if len(no_html) < 10:
+        no_html = sentence
+    cleaned = re.sub(r'\W+', ' ', no_html)  # removes everything except alphanumerics and spaces
+
+    stoplist = set('for a of the and to in'.split())  # removing common words
+    texts = [word for word in cleaned.lower().split() if word not in stoplist]  # turning each word into an item in a list
+    return texts
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs= True
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+'''
 So that logfileMOOC can act as either a reusable module, or as a standalone program.
 '''
 if __name__ == '__main__':
+    print("Running logfileMOOC")
     run()

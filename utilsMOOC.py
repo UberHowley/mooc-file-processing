@@ -34,6 +34,9 @@ CONST_MIN_USERID = 0  # limiting student user IDs
     # 4480312 - sj
 exclude_ids = {4, 5, 100, 200, 300, 400, 5529617, 5384681, 5556926, 5529557, 5553363, 5542424, 2030452, 4480312}
 
+# COLUMN VALUES
+VAL_IS = "y"  # conditions values are stored as 0s and 1st but they're actually categorical, not numerical...
+VAL_ISNOT = "n"
 # COLUMN HEADER NAMES
 COL_USERID = "userID"
 COL_INSTANCEID = "instanceID"
