@@ -82,9 +82,7 @@ class QHInstance(object):
         :param compare_to: the QHInstance we're comparing against for similarity
         :return: True if the given item has the same duplicate key as self item
         """
-        if self.get_duplicate_key == compare_to.get_duplicate_key():
-            return True
-        return False
+        return self.get_duplicate_key == compare_to.get_duplicate_key()
 
     def get_duplicate_key(self):
         """
