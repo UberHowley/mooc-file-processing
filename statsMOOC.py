@@ -30,6 +30,7 @@ def run():
     user_input = input("> Print descriptive statistics? [y/n]: ")
     if is_yes(user_input):
         descriptive_stats(data)
+        compare_plot_instances(data)
 
     user_input = input("> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
     if is_yes(user_input):
@@ -37,7 +38,7 @@ def run():
 
     user_input = input("> Display comparison plots of conditions? [y/n]: ")
     if is_yes(user_input):
-        compare_plot(data)
+        compare_plot_helpers(data)
 
 
 def is_yes(stri):
@@ -48,26 +49,44 @@ def is_yes(stri):
     """
     return 'y' in stri.lower()
 
-def compare_plot(data):
+def compare_plot_helpers(data):
     """
     Print comparison plots for given data frame
     :param data: pandas dataframe we are exploring
     :return: None
     """
     # TODO: These should be box plots, not bar plots
-    # TODO: Are these showing num rows in each condition, or num helpers?
     conditions = {utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG}
     fig = plt.figure()
     i = 1
     for cond in conditions:
         ax = fig.add_subplot(2, 3, i)
-        df_compare = data.groupby(cond)[cond].count()
-        #print(df_compare)
+        #df_compare = pd.concat([data.groupby(cond)[cond].count(), data.groupby(cond)[utils.COL_NUMHELPERS].mean()], axis=1) # displays num helpers selected in each condition
+        df_compare = data.groupby(cond)[utils.COL_NUMHELPERS].mean()  # displays num helpers selected in each condition
         ax = df_compare.plot(kind='bar', title=cond)
         ax.set_xlabel(cond)
-        ax.set_ylabel(utils.COL_NUMHELPERS)
+        ax.set_ylabel("mean " + utils.COL_NUMHELPERS)
         i += 1
     plt.show()
+
+def compare_plot_instances(data):
+    """
+    Print comparison plots for given data frame, show num instances in each condition
+    :param data: pandas dataframe we are exploring
+    :return: None
+    """
+    conditions = {utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG}
+    fig = plt.figure()
+    i = 1
+    for cond in conditions:
+        ax = fig.add_subplot(2, 3, i)
+        df_compare = data.groupby(cond)[cond].count()  # displays num instances assigned to each condition
+        ax = df_compare.plot(kind='bar', title=cond)
+        ax.set_xlabel(cond)
+        ax.set_ylabel("count instances")
+        i += 1
+    plt.show()
+
 
 def descriptive_plot(data):
     """
