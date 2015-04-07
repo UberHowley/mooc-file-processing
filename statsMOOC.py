@@ -4,10 +4,10 @@ __project__ = 'processMOOC'
 import pandas as pd
 import utilsMOOC as utils
 import matplotlib.pyplot as plt
-import seaborn as sba
 
 def run():
-    """ run function - coordinates the main statistical analyses
+    """
+    run function - coordinates the main statistical analyses
     :return: None
     """
 
@@ -27,28 +27,55 @@ def run():
     data[utils.COL_VERSION] = data[utils.COL_VERSION].astype('category')
     #print(data.tail())  # print a small sample of the data
 
+    '''
+    df2 = data[[utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_NUMHELPERS]].dropna()
+    print(df2)
+    df2.plot(kind='bar')
+    plt.show()
+    '''
+
     user_input = input("> Print descriptive statistics? [y/n]: ")
     if is_yes(user_input):
         descriptive_stats(data)
 
     user_input = input("> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
     if is_yes(user_input):
-        # plotting the data
-        plt.hist(data.numHelpersSelected, bins=4, align='mid', facecolor='green')
-        plt.title("Histogram of Number of Helpers Selected")
-        plt.xlabel("Number of Helpers Selected (0,1,2,3)")
-        plt.ylabel("Count")
-        plt.show()
+        descriptive_plot(data)
 
-def is_yes(str):
-    """ Return True if the given string contains a 'y'
+
+def is_yes(stri):
+    """
+    Return True if the given string contains a 'y'
     :param str: a string, likely a user console input
     :return: True if the string contains the letter 'y'
     """
-    return 'y' in str.lower()
+    return 'y' in stri.lower()
+
+def descriptive_plot(data):
+    """
+    Print descriptive plot for give data frame
+    :param data: pandas dataframe we are exploring
+    :return: None
+    """
+    fig = plt.figure()
+    ax1 = fig.add_subplot(121)
+    plt_numhelpers = data[utils.COL_NUMHELPERS]
+    plt_numhelpers.index = data[utils.COL_DATE]
+    plt_numhelpers = plt_numhelpers.cumsum()
+    ax1 = plt_numhelpers.plot(title="Num Helpers Selected Over Time")
+    ax1.set_xlabel("Date")
+    ax1.set_ylabel("Cumulative Helpers Selected")
+
+    ax2 = fig.add_subplot(122)
+    plt_numhelpers_hist = data[utils.COL_NUMHELPERS]
+    ax2 = plt_numhelpers.plot(kind='hist', title="Histogram Num Helpers Selected")
+    ax2.set_xlabel("Number of Helpers Selected (0,1,2,3)")
+    ax2.set_ylabel("Count")
+    plt.show()
 
 def descriptive_stats(data):
-    """ Print descriptive statistics for give data frame
+    """
+    Print descriptive statistics for give data frame
     :param data: pandas dataframe we are exploring
     :return: None
     """
