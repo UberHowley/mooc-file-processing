@@ -50,18 +50,19 @@ def is_yes(stri):
 
 def compare_plot(data):
     """
-    Print comparison plots for give data frame
+    Print comparison plots for given data frame
     :param data: pandas dataframe we are exploring
     :return: None
     """
     # TODO: These should be box plots, not bar plots
+    # TODO: Are these showing num rows in each condition, or num helpers?
     conditions = {utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG}
     fig = plt.figure()
     i = 1
     for cond in conditions:
         ax = fig.add_subplot(2, 3, i)
         df_compare = data.groupby(cond)[cond].count()
-        print(df_compare)
+        #print(df_compare)
         ax = df_compare.plot(kind='bar', title=cond)
         ax.set_xlabel(cond)
         ax.set_ylabel(utils.COL_NUMHELPERS)
@@ -76,18 +77,19 @@ def descriptive_plot(data):
     """
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
-    plt_numhelpers = data[utils.COL_NUMHELPERS]
-    plt_numhelpers.index = data[utils.COL_DATE]
-    plt_numhelpers = plt_numhelpers.cumsum()
-    ax1 = plt_numhelpers.plot(title="Num Helpers Selected Over Time")
+    helpers_by_date = data[utils.COL_NUMHELPERS]
+    helpers_by_date.index = data[utils.COL_DATE]
+    helpers_by_date = helpers_by_date.cumsum()
+    ax1 = helpers_by_date.plot(title="Num Helpers Selected Over Time")
     ax1.set_xlabel("Date")
     ax1.set_ylabel("Cumulative Helpers Selected")
 
     ax2 = fig.add_subplot(122)
-    plt_numhelpers_hist = data[utils.COL_NUMHELPERS]
-    ax2 = plt_numhelpers.plot(kind='hist', title="Histogram Num Helpers Selected")
+    helpers_hist = data[utils.COL_NUMHELPERS]
+    # TODO: x-axis should only be integers, not fractions
+    ax2 = helpers_hist.plot(kind='hist', title="Histogram Num Helpers Selected", by=utils.COL_NUMHELPERS)
     ax2.set_xlabel("Number of Helpers Selected (0,1,2,3)")
-    ax2.set_ylabel("Count")
+    ax2.set_ylabel("Num Instances")
     plt.show()
 
 def descriptive_stats(data):
