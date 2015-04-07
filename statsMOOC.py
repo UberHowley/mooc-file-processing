@@ -27,13 +27,6 @@ def run():
     data[utils.COL_VERSION] = data[utils.COL_VERSION].astype('category')
     #print(data.tail())  # print a small sample of the data
 
-    '''
-    df2 = data[[utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_NUMHELPERS]].dropna()
-    print(df2)
-    df2.plot(kind='bar')
-    plt.show()
-    '''
-
     user_input = input("> Print descriptive statistics? [y/n]: ")
     if is_yes(user_input):
         descriptive_stats(data)
@@ -41,6 +34,10 @@ def run():
     user_input = input("> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
     if is_yes(user_input):
         descriptive_plot(data)
+
+    user_input = input("> Display comparison plots of conditions? [y/n]: ")
+    if is_yes(user_input):
+        compare_plot(data)
 
 
 def is_yes(stri):
@@ -50,6 +47,26 @@ def is_yes(stri):
     :return: True if the string contains the letter 'y'
     """
     return 'y' in stri.lower()
+
+def compare_plot(data):
+    """
+    Print comparison plots for give data frame
+    :param data: pandas dataframe we are exploring
+    :return: None
+    """
+    # TODO: These should be box plots, not bar plots
+    conditions = {utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG}
+    fig = plt.figure()
+    i = 1
+    for cond in conditions:
+        ax = fig.add_subplot(2, 3, i)
+        df_compare = data.groupby(cond)[cond].count()
+        print(df_compare)
+        ax = df_compare.plot(kind='bar', title=cond)
+        ax.set_xlabel(cond)
+        ax.set_ylabel(utils.COL_NUMHELPERS)
+        i += 1
+    plt.show()
 
 def descriptive_plot(data):
     """
