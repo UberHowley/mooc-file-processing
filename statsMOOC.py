@@ -100,13 +100,14 @@ def descriptive_plot(data):
     helpers_by_date.index = data[utils.COL_DATE]
     helpers_by_date = helpers_by_date.cumsum()
     ax1 = helpers_by_date.plot(title="Num Helpers Selected Over Time")
+    ax1.locator_params(axis='x', nbins=6)
     ax1.set_xlabel("Date")
     ax1.set_ylabel("Cumulative Helpers Selected")
 
     ax2 = fig.add_subplot(122)
     helpers_hist = data[utils.COL_NUMHELPERS]
-    # TODO: x-axis should only be integers, not fractions
     ax2 = helpers_hist.plot(kind='hist', title="Histogram Num Helpers Selected", by=utils.COL_NUMHELPERS)
+    ax2.locator_params(axis='x', nbins=4)
     ax2.set_xlabel("Number of Helpers Selected (0,1,2,3)")
     ax2.set_ylabel("Num Instances")
     plt.show()
