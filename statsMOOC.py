@@ -4,7 +4,6 @@ __project__ = 'processMOOC'
 import pandas as pd
 import utilsMOOC as utils
 import matplotlib.pyplot as plt
-import numpy as np
 from statsmodels.formula.api import ols
 from statsmodels.graphics.api import interaction_plot, abline_plot
 from statsmodels.stats.anova import anova_lm
@@ -14,7 +13,6 @@ def run():
     run function - coordinates the main statistical analyses
     :return: None
     """
-
     # Exception handling in case the logfile doesn't exist
     try:
         data = pd.io.parsers.read_csv(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED, encoding="utf-8-sig")
@@ -36,7 +34,11 @@ def run():
     if is_yes(user_input):
         compare_plot_helpers(data)
 
-    user_input = input("> Print Two-Way ANOVA Interaction statistics? [y/n]: ")
+    user_input = input("> Print One-Way ANOVA statistics for all conditions? [y/n]: ")
+    if is_yes(user_input):
+        one_way_anova(data)
+
+    user_input = input("> Print Two-Way ANOVA Interaction badge*voting statistics? [y/n]: ")
     if is_yes(user_input):
         anova_interaction(data)
 
@@ -49,31 +51,61 @@ def is_yes(stri):
     """
     return 'y' in stri.lower()
 
+def one_way_anova(data):
+    """
+    One-way ANOVA to predict each condition --> num helpers selected
+    http://statsmodels.sourceforge.net/devel/examples/generated/example_interactions.html
+    :param data: data frame containing the independent and dependent variables
+    :return: None
+    """
+    conditions = {utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG}
+
+    fig = plt.figure()
+    i = 1
+
+    for cond in conditions:
+        cond_table = data[[cond, utils.COL_NUMHELPERS]].dropna()
+        cond_lm = ols(utils.COL_NUMHELPERS + " ~ C(" + cond + ")", data=cond_table).fit()
+        anova_table = anova_lm(cond_lm)
+
+        print("\n"+utils.FORMAT_LINE)
+        print("One-Way ANOVA: " + cond)
+        print(utils.FORMAT_LINE)
+        print(anova_table)
+        #print(cond_lm.model.data.orig_exog)
+        print(cond_lm.summary())
+
+        ax = fig.add_subplot(2, 3, i)
+        ax = cond_table.boxplot(utils.COL_NUMHELPERS, cond, ax=plt.gca())
+        ax.set_xlabel(cond)
+        ax.set_ylabel(utils.COL_NUMHELPERS)
+        i += 1
+    # box plot
+    user_input = input(">> Display boxplot of conditions? [y/n]: ")
+    if is_yes(user_input):
+        plt.show()
+
+
 def anova_interaction(data):
     """
-    Plot the residuals of our conditions --> num helpers selected
+    Two-way ANOVA and interaction analysis of badges*voting --> num helpers selected
     http://statsmodels.sourceforge.net/devel/examples/generated/example_interactions.html
     :param data: data frame containing the independent and dependent variables
     :return: None
     """
 
     exp_data = data[[utils.COL_BADGE, utils.COL_VOTING, utils.COL_NUMHELPERS]]
-    #exp_data = data[[utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG, utils.COL_NUMHELPERS]]
-    #print(exp_data.head())
-
     factor_groups = exp_data[[utils.COL_BADGE, utils.COL_VOTING, utils.COL_NUMHELPERS]].dropna()
 
     # two-way anova
-    formula =  utils.COL_NUMHELPERS + " ~ C(" + utils.COL_BADGE + ") + C(" + utils.COL_VOTING + ")"
+    formula = utils.COL_NUMHELPERS + " ~ C(" + utils.COL_BADGE + ") + C(" + utils.COL_VOTING + ")"
     formula_interaction = formula.replace('+', '*')
     badge_vote_lm = ols(formula, data=factor_groups).fit()  # linear model
     print(badge_vote_lm.summary())
-    table10 = anova_lm(badge_vote_lm)
 
     print(utils.FORMAT_LINE)
     print("- " + utils.COL_NUMHELPERS + " = " + utils.COL_BADGE + " * " + utils.COL_VOTING + " Interaction -")
     print(anova_lm(ols(formula_interaction, data=factor_groups).fit(), badge_vote_lm))
-
 
     print(utils.FORMAT_LINE)
     print("- " + utils.COL_NUMHELPERS + " = " + utils.COL_BADGE + " + " + utils.COL_VOTING + " ANOVA -")
