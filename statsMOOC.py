@@ -4,6 +4,10 @@ __project__ = 'processMOOC'
 import pandas as pd
 import utilsMOOC as utils
 import matplotlib.pyplot as plt
+import numpy as np
+from statsmodels.formula.api import ols
+from statsmodels.graphics.api import interaction_plot, abline_plot
+from statsmodels.stats.anova import anova_lm
 
 def run():
     """
@@ -17,28 +21,24 @@ def run():
     except OSError as e:
         print("ERROR: " +str(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED) +" does not exist. Did you run logfileMOOC.py?")
 
-    # make experimental conditions  categorical variables
-    # TODO: Determine if this is necessary/desirable
-    data[utils.COL_BADGE] = data[utils.COL_BADGE].astype('category')
-    data[utils.COL_IRRELEVANT] = data[utils.COL_IRRELEVANT].astype('category')
-    data[utils.COL_VOTING] = data[utils.COL_VOTING].astype('category')
-    data[utils.COL_ANONIMG] = data[utils.COL_ANONIMG].astype('category')
-    data[utils.COL_USERNAME] = data[utils.COL_USERNAME].astype('category')
-    data[utils.COL_VERSION] = data[utils.COL_VERSION].astype('category')
-    #print(data.tail())  # print a small sample of the data
-
     user_input = input("> Print descriptive statistics? [y/n]: ")
     if is_yes(user_input):
         descriptive_stats(data)
+    user_input = input(">> Display descriptive statistics plot? [y/n]: ")
+    if is_yes(user_input):
         compare_plot_instances(data)
 
-    user_input = input("> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
+    user_input = input(">> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
     if is_yes(user_input):
         descriptive_plot(data)
 
-    user_input = input("> Display comparison plots of conditions? [y/n]: ")
+    user_input = input("> Display comparison plots of conditions -> "+utils.COL_NUMHELPERS+"? [y/n]: ")
     if is_yes(user_input):
         compare_plot_helpers(data)
+
+    user_input = input("> Print Two-Way ANOVA Interaction statistics? [y/n]: ")
+    if is_yes(user_input):
+        anova_interaction(data)
 
 
 def is_yes(stri):
@@ -48,6 +48,47 @@ def is_yes(stri):
     :return: True if the string contains the letter 'y'
     """
     return 'y' in stri.lower()
+
+def anova_interaction(data):
+    """
+    Plot the residuals of our conditions --> num helpers selected
+    http://statsmodels.sourceforge.net/devel/examples/generated/example_interactions.html
+    :param data: data frame containing the independent and dependent variables
+    :return: None
+    """
+
+    exp_data = data[[utils.COL_BADGE, utils.COL_VOTING, utils.COL_NUMHELPERS]]
+    #exp_data = data[[utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_VERSION, utils.COL_ANONIMG, utils.COL_NUMHELPERS]]
+    #print(exp_data.head())
+
+    factor_groups = exp_data[[utils.COL_BADGE, utils.COL_VOTING, utils.COL_NUMHELPERS]].dropna()
+
+    # two-way anova
+    formula =  utils.COL_NUMHELPERS + " ~ C(" + utils.COL_BADGE + ") + C(" + utils.COL_VOTING + ")"
+    formula_interaction = formula.replace('+', '*')
+    badge_vote_lm = ols(formula, data=factor_groups).fit()  # linear model
+    print(badge_vote_lm.summary())
+    table10 = anova_lm(badge_vote_lm)
+
+    print(utils.FORMAT_LINE)
+    print("- " + utils.COL_NUMHELPERS + " = " + utils.COL_BADGE + " * " + utils.COL_VOTING + " Interaction -")
+    print(anova_lm(ols(formula_interaction, data=factor_groups).fit(), badge_vote_lm))
+
+
+    print(utils.FORMAT_LINE)
+    print("- " + utils.COL_NUMHELPERS + " = " + utils.COL_BADGE + " + " + utils.COL_VOTING + " ANOVA -")
+    print(anova_lm(ols(utils.COL_NUMHELPERS + " ~ C(" + utils.COL_BADGE + ")", data=factor_groups).fit(), ols(utils.COL_NUMHELPERS +" ~ C("+utils.COL_BADGE+") + C(" + utils.COL_VOTING+", Sum)", data=factor_groups).fit()))
+
+    print(utils.FORMAT_LINE)
+    print("- " + utils.COL_NUMHELPERS + " = " +  utils.COL_BADGE + " + " + utils.COL_VOTING + " ANOVA -")
+    print(anova_lm(ols(utils.COL_NUMHELPERS + " ~ C(" + utils.COL_VOTING + ")", data=factor_groups).fit(), ols(utils.COL_NUMHELPERS +" ~ C("+utils.COL_BADGE+") + C(" + utils.COL_VOTING+", Sum)", data=factor_groups).fit()))
+
+    # interaction plot
+    user_input = input(">> Display Interaction plot? [y/n]: ")
+    if is_yes(user_input):
+        plt.figure(figsize=(6, 6))
+        interaction_plot(factor_groups[utils.COL_BADGE], factor_groups[utils.COL_VOTING], factor_groups[utils.COL_NUMHELPERS], colors=['red', 'blue'], markers=['D', '^'], ms=10, ax=plt.gca())
+        plt.show()
 
 def compare_plot_helpers(data):
     """
