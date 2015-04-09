@@ -6,12 +6,9 @@ __project__ = 'processMOOC'
 import utilsMOOC as utils
 import copy
 import datetime
-import re
-from html.parser import HTMLParser
 from collections import defaultdict
 from QHInstance import QHInstance
-from stop_words import get_stop_words
-from gensim import corpora, models, similarities
+from lda_topic_model import LDAtopicModel as ldat
 
 # LOGFILE NAMES
 FILENAME_HELPERLOG = utils.FILENAME_HELPERLOG
@@ -87,26 +84,23 @@ def run():
     helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
     helperfile_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
 
+    lda = ldat(list_sentences)
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
         setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
-
-        # assign topic
-        lda_vector = lda[dict_lda.doc2bow(doc)]
-        print(max(lda_vector, key=lambda item: item[1])[0])
-        # print(lda.print_topic(max(lda_vector, key=lambda item: item[1])[0]))  # prints the most prominent LDA topic
-        line = qh_instance.to_string(delimiter=CONST_DELIMITER)
+        # assign LDA topic
+        topic_name = lda.predict_topic(make_bow([getattr(qh_instance, 'question_title', ''), getattr(qh_instance,'question_body','')]))
+        setattr(qh_instance, 'lda_topic', topic_name)
+        # write user instance to file
+        userfile_out.write(qh_instance.to_string(delimiter=utils.CONST_DELIMITER)+'\n')
 
         # print associated helpers to the helper.log
         for helper_line in dict_all_helpers[getattr(qh_instance, 'instance_id')]:
             helperfile_out.write(helper_line+'\n')
-        userfile_out.write(line+'\n')
     userfile_out.close()
     helperfile_out.close()
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+ " and " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
     print("\tNumber of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
-
-    create_lda()
 
 def proc_user():
     """
@@ -412,6 +406,18 @@ def proc_click():
     print("Done processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
+def make_bow(all_strings):
+    """
+    Make a bag of words from a given list of strings
+    Ensures that we're always constructing our bags of words in the same manner
+    :param all_strings: the strings to combine and split as a bag of words
+    :return: the strings in one list, a bag of words
+    """
+    line = ""
+    for word in all_strings:
+        line += " " + word
+    return line
+
 def remove_duplicates():
     """
      Remove duplicates from our list of instances, based on whatever key was used in duplicate_instances
@@ -427,7 +433,7 @@ def remove_duplicates():
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
         # Store this sentence, too
-        list_sentences.append(clean_string(getattr(selected_dup, 'question_title', '')+' '+getattr(selected_dup,'question_body','')))
+        list_sentences.append(ldat.clean_string(make_bow([getattr(selected_dup, 'question_title', ''), ' '+getattr(selected_dup,'question_body','')])))
 
         if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
             global count_repeat
@@ -569,90 +575,6 @@ def get_num_weeks(sentence):
         return utils.CONST_TA
     else:
         return sentence[sentence.find("week")-2: sentence.find("week")]
-
-def clean_string(sentence):
-    """
-    Clean the string by removing all punctuation
-    http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
-    :param sentence: the string potentially containing HTML and other non-alphanumerics
-    :return: the string cleaned of all tags, undesirables
-    """
-    s = MLStripper()
-    s.feed(sentence)
-    no_html = s.get_data()
-    # This code apparently removes all text in a string without any HTML
-    if len(no_html) < 10:
-        no_html = sentence
-    cleaned = re.sub(r'\W+', ' ', no_html)  # removes everything except alphanumerics and spaces
-
-    stoplist = set('for a of the and to in'.split())  # removing common words
-    texts = [word for word in cleaned.lower().split() if word not in stoplist]  # turning each word into an item in a list
-    return texts
-
-class MLStripper(HTMLParser):
-    """
-    A class for stripping HTML tags from a string
-    """
-    def __init__(self):
-        super().__init__()
-        self.reset()
-        self.strict = False
-        self.convert_charrefs= True
-        self.fed = []
-    def handle_data(self, d):
-        self.fed.append(d)
-    def get_data(self):
-        return ''.join(self.fed)
-
-def create_lda():
-    """
-    Runs all posts through an LDA topic model, to determine the basic topic of the post.
-    http://chrisstrelioff.ws/sandbox/2014/11/13/getting_started_with_latent_dirichlet_allocation_in_python.html
-    http://radimrehurek.com/topic_modeling_tutorial/2%20-%20Topic%20Modeling.html
-    :return: LDA model built from existing documents
-    """
-    print("Creating LDA topic model from " + str(len(list_sentences)) + " documents.")
-    num_topics = utils.NUM_LDA_TOPICS
-    chunk_size = int(len(list_sentences)/100)
-    if chunk_size < 1:
-        chunk_size = 1  # small number of sentences
-
-    all_tokens = sum(list_sentences, [])
-    # process our stop words like all our words have been processed
-    tokens_stop = []
-    for word in get_stop_words('en'):
-        tokens_stop.extend(clean_string(word))
-    tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
-    # remove words that appear only once or are stop words
-    texts = [[word for word in sentence if word not in tokens_once and word not in tokens_stop]
-        for sentence in list_sentences]
-
-    # constructing topic model
-    dict_lda = corpora.Dictionary(texts)
-    mm_corpus = [dict_lda.doc2bow(text) for text in texts]
-    lda = models.ldamodel.LdaModel(corpus=mm_corpus, id2word=dict_lda, num_topics=num_topics, update_every=1, chunksize=chunk_size, passes=1)
-
-    print("Done creating LDA topic model")
-
-    # get list of lda topic names
-    lda = create_lda()
-    print(utils.FORMAT_LINE)
-    # printing each topic
-    for topic in lda.print_topics(utils.NUM_LDA_TOPICS):
-        print(topic)
-    print("\n")
-    # naming each topic
-    topic_names = []
-    for topic in lda.print_topics(utils.NUM_LDA_TOPICS):
-        topic_names.append(input("> A name for this topic: " + topic + ": "))
-    print(utils.FORMAT_LINE)
-
-    # predict topic for each document
-    for doc in list_sentences:
-        lda_vector = lda[dict_lda.doc2bow(doc)]
-        print(max(lda_vector, key=lambda item: item[1])[0])
-        # print(lda.print_topic(max(lda_vector, key=lambda item: item[1])[0]))  # prints the most prominent LDA topic
-    return lda
 
 '''
 So that logfileMOOC can act as either a reusable module, or as a standalone program.

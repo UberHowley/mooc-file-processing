@@ -19,11 +19,11 @@ CONST_DELIMITER = ","
 
 # limiting date
 # CONST_FIRST_DAY = datetime.date(2014, 10, 20)  # actual first day of the course
-CONST_FIRST_DAY = datetime.date(2014, 10, 27)  # the first day we got the system working properly
+CONST_FIRST_DAY = datetime.date(2014, 10, 27)  # the first day system worked properly
 CONST_LAST_DAY = datetime.date(2014, 12, 17)
 
 # User Inputs
-NUM_LDA_TOPICS = -1  # number of topics in topic model
+NUM_LDA_TOPICS = 10  # number of topics in topic model
 CONST_MIN_USERID = 0  # limiting student user IDs
 
 # exclude these [researcher] IDs:
@@ -49,9 +49,9 @@ COL_VOTING = "isVotingCondition"
 COL_ANONIMG = "isAnonImg"
 COL_USERNAME = "isUsernameCondition"
 # user.log
+COL_TOPIC = "topicLDA"
 COL_QTITLE = "quesTitle"
 COL_QBODY = "quesBody"
-COL_TOPIC = "topicLDA"
 COL_HELPER0 = "helper0"
 COL_HELPER1 = "helper1"
 COL_HELPER2 = "helper2"

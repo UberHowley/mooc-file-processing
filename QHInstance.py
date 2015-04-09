@@ -97,7 +97,7 @@ class QHInstance(object):
         :param delimiter: character to split each column header
         :return: None
         """
-        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_VERSION + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_URL + delimiter +utils.COL_DATE + delimiter + utils.COL_TIME
+        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_VERSION + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_TOPIC + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_URL + delimiter +utils.COL_DATE + delimiter + utils.COL_TIME
 
     def to_string(self, delimiter):
         """
@@ -109,7 +109,7 @@ class QHInstance(object):
         line += str(self.cond_badge) + delimiter + str(self.cond_irrelevant_sentence) + delimiter + str(self.cond_voting)
         line += delimiter + str(self.cond_anon_img) + delimiter + str(self.cond_user_id) + delimiter + str(self.id_helper0)
         line += delimiter + str(self.id_helper1) + delimiter + str(self.id_helper2) + delimiter + str(self.num_helpers_selected)
-        line += delimiter + self.question_title + delimiter + self.question_body + delimiter + self.url + delimiter
-        line += str(self.timestamp.date()) + delimiter + str(self.timestamp.time())
+        line += delimiter + self.lda_topic + delimiter + self.question_title + delimiter + self.question_body + delimiter
+        line += self.url + delimiter + str(self.timestamp.date()) + delimiter + str(self.timestamp.time())
         return line
 
