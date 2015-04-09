@@ -8,10 +8,10 @@ import copy
 import datetime
 import re
 from html.parser import HTMLParser
-import math
 from collections import defaultdict
 from QHInstance import QHInstance
-#from gensim import corpora, models, similarities
+from stop_words import get_stop_words
+from gensim import corpora, models, similarities
 
 # LOGFILE NAMES
 FILENAME_HELPERLOG = utils.FILENAME_HELPERLOG
@@ -90,7 +90,14 @@ def run():
     for qh_instance in list_no_duplicates:
         # set the selected number of helpers for each instance
         setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
+
+        # assign topic
+        lda_vector = lda[dict_lda.doc2bow(doc)]
+        print(max(lda_vector, key=lambda item: item[1])[0])
+        # print(lda.print_topic(max(lda_vector, key=lambda item: item[1])[0]))  # prints the most prominent LDA topic
         line = qh_instance.to_string(delimiter=CONST_DELIMITER)
+
+        # print associated helpers to the helper.log
         for helper_line in dict_all_helpers[getattr(qh_instance, 'instance_id')]:
             helperfile_out.write(helper_line+'\n')
         userfile_out.write(line+'\n')
@@ -98,6 +105,8 @@ def run():
     helperfile_out.close()
     print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+ " and " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
     print("\tNumber of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
+
+    create_lda()
 
 def proc_user():
     """
@@ -403,32 +412,6 @@ def proc_click():
     print("Done processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
-'''
-def lda_topic_model():
-    """
-    Runs all posts through an LDA topic model, to determine the basic topic of the post.
-    https://radimrehurek.com/gensim/tut1.html
-    :return: None
-    """
-    num_topics = utils.NUM_LDA_TOPICS
-    if num_topics < 0:
-        num_topics = int(math.sqrt(len(list_sentences)))  # make our default be the sqrt of number of sentences we have
-    chunk_size = int(len(list_sentences)/100)
-    if chunk_size < 1 :
-        chunk_size = 1  # small number of sentences
-
-    # remove words that appear only once
-    all_tokens = sum(list_sentences, [])
-    tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
-    texts = [[word for word in sentence if word not in tokens_once]
-        for sentence in list_sentences]
-
-    dict_lda = corpora.Dictionary(texts)
-    mm_corpus = [dict_lda.doc2bow(text) for text in texts]
-    print("NOTE: " +mm_corpus)
-    lda = models.ldamodel.LdaModel(corpus=mm_corpus, id2word=dict_lda, num_topics=num_topics, update_every=1, chunksize=chunk_size, passes=1)
-'''
-
 def remove_duplicates():
     """
      Remove duplicates from our list of instances, based on whatever key was used in duplicate_instances
@@ -620,6 +603,56 @@ class MLStripper(HTMLParser):
         self.fed.append(d)
     def get_data(self):
         return ''.join(self.fed)
+
+def create_lda():
+    """
+    Runs all posts through an LDA topic model, to determine the basic topic of the post.
+    http://chrisstrelioff.ws/sandbox/2014/11/13/getting_started_with_latent_dirichlet_allocation_in_python.html
+    http://radimrehurek.com/topic_modeling_tutorial/2%20-%20Topic%20Modeling.html
+    :return: LDA model built from existing documents
+    """
+    print("Creating LDA topic model from " + str(len(list_sentences)) + " documents.")
+    num_topics = utils.NUM_LDA_TOPICS
+    chunk_size = int(len(list_sentences)/100)
+    if chunk_size < 1:
+        chunk_size = 1  # small number of sentences
+
+    all_tokens = sum(list_sentences, [])
+    # process our stop words like all our words have been processed
+    tokens_stop = []
+    for word in get_stop_words('en'):
+        tokens_stop.extend(clean_string(word))
+    tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
+    # remove words that appear only once or are stop words
+    texts = [[word for word in sentence if word not in tokens_once and word not in tokens_stop]
+        for sentence in list_sentences]
+
+    # constructing topic model
+    dict_lda = corpora.Dictionary(texts)
+    mm_corpus = [dict_lda.doc2bow(text) for text in texts]
+    lda = models.ldamodel.LdaModel(corpus=mm_corpus, id2word=dict_lda, num_topics=num_topics, update_every=1, chunksize=chunk_size, passes=1)
+
+    print("Done creating LDA topic model")
+
+    # get list of lda topic names
+    lda = create_lda()
+    print(utils.FORMAT_LINE)
+    # printing each topic
+    for topic in lda.print_topics(utils.NUM_LDA_TOPICS):
+        print(topic)
+    print("\n")
+    # naming each topic
+    topic_names = []
+    for topic in lda.print_topics(utils.NUM_LDA_TOPICS):
+        topic_names.append(input("> A name for this topic: " + topic + ": "))
+    print(utils.FORMAT_LINE)
+
+    # predict topic for each document
+    for doc in list_sentences:
+        lda_vector = lda[dict_lda.doc2bow(doc)]
+        print(max(lda_vector, key=lambda item: item[1])[0])
+        # print(lda.print_topic(max(lda_vector, key=lambda item: item[1])[0]))  # prints the most prominent LDA topic
+    return lda
 
 '''
 So that logfileMOOC can act as either a reusable module, or as a standalone program.
