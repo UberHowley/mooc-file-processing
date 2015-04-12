@@ -8,7 +8,7 @@ import copy
 import datetime
 from collections import defaultdict
 from QHInstance import QHInstance
-from lda_topic_model import LDAtopicModel as ldat
+from topicModelLDA import LDAtopicModel as ldat
 
 # LOGFILE NAMES
 FILENAME_HELPERLOG = utils.FILENAME_HELPERLOG
