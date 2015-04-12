@@ -89,7 +89,7 @@ def run():
         # set the selected number of helpers for each instance
         setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
         # assign LDA topic
-        topic_name = lda.predict_topic(make_bow([getattr(qh_instance, 'question_title', ''), getattr(qh_instance,'question_body','')]))
+        topic_name = lda.predict_topic(" ".join([getattr(qh_instance, 'question_title', ''), getattr(qh_instance,'question_body','')]))
         setattr(qh_instance, 'lda_topic', topic_name)
         # write user instance to file
         userfile_out.write(qh_instance.to_string(delimiter=utils.CONST_DELIMITER)+'\n')
@@ -406,18 +406,6 @@ def proc_click():
     print("Done processing "+FILENAME_CLICKLOG+EXTENSION_LOGFILE+"\n")
     file_out.close()
 
-def make_bow(all_strings):
-    """
-    Make a bag of words from a given list of strings
-    Ensures that we're always constructing our bags of words in the same manner
-    :param all_strings: the strings to combine and split as a bag of words
-    :return: the strings in one list, a bag of words
-    """
-    line = ""
-    for word in all_strings:
-        line += " " + word
-    return line
-
 def remove_duplicates():
     """
      Remove duplicates from our list of instances, based on whatever key was used in duplicate_instances
@@ -433,7 +421,7 @@ def remove_duplicates():
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
         # Store this sentence, too
-        list_sentences.append(ldat.clean_string(make_bow([getattr(selected_dup, 'question_title', ''), ' '+getattr(selected_dup,'question_body','')])))
+        list_sentences.append(ldat.clean_string(" ".join([getattr(selected_dup, 'question_title', ''), ' '+getattr(selected_dup,'question_body','')])))
 
         if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
             global count_repeat
