@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from statsmodels.formula.api import ols
 from statsmodels.graphics.api import interaction_plot, abline_plot
 from statsmodels.stats.anova import anova_lm
+from statsmodels.stats.weightstats import ttest_ind
 
 def run():
     """
@@ -34,6 +35,10 @@ def run():
     if is_yes(user_input):
         compare_plot_helpers(data)
 
+    user_input = input("> Print t-test statistics for all conditions? [y/n]: ")
+    if is_yes(user_input):
+        t_test(data)
+
     user_input = input("> Print One-Way ANOVA statistics for all conditions? [y/n]: ")
     if is_yes(user_input):
         one_way_anova(data)
@@ -51,10 +56,48 @@ def is_yes(stri):
     """
     return 'y' in stri.lower()
 
+def t_test(data):
+    """
+    T-test to predict each condition --> num helpers selected
+    http://statsmodels.sourceforge.net/devel/stats.html
+
+    Note: T-tests are for 1 categorical variable with 2 levels
+    :param data: data frame containing the independent and dependent variables
+    :return: None
+    """
+    conditions = {utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_ANONIMG}
+    # utils.COL_VERSION -> has 'TA' and 'student' instead of 'y' and 'n'
+
+    fig = plt.figure()
+    i = 1
+
+    for cond in conditions:
+        df = data[[cond, utils.COL_NUMHELPERS]].dropna()
+        cat1 = df[df[cond] == utils.VAL_IS][utils.COL_NUMHELPERS]
+        cat2 = df[df[cond] == utils.VAL_ISNOT][utils.COL_NUMHELPERS]
+
+        print("\n"+utils.FORMAT_LINE)
+        print("T-test: " + cond)
+        print(utils.FORMAT_LINE)
+        print(ttest_ind(cat1, cat2))  # returns t-stat, p-value, and degrees of freedom
+        print("(t-stat, p-value, df)")
+
+        ax = fig.add_subplot(2, 3, i)
+        ax = df.boxplot(utils.COL_NUMHELPERS, cond, ax=plt.gca())
+        ax.set_xlabel(cond)
+        ax.set_ylabel(utils.COL_NUMHELPERS)
+        i += 1
+    # box plot
+    user_input = input(">> Display boxplot of conditions? [y/n]: ")
+    if is_yes(user_input):
+        plt.show()
+
 def one_way_anova(data):
     """
     One-way ANOVA to predict each condition --> num helpers selected
     http://statsmodels.sourceforge.net/devel/examples/generated/example_interactions.html
+
+    Note: 1way ANOVAs are for 1 categorical independent/causal variable with 3+ levels
     :param data: data frame containing the independent and dependent variables
     :return: None
     """
@@ -90,6 +133,8 @@ def anova_interaction(data):
     """
     Two-way ANOVA and interaction analysis of badges*voting --> num helpers selected
     http://statsmodels.sourceforge.net/devel/examples/generated/example_interactions.html
+
+    Note: 2way ANOVAs are for 2+ categorical independent/causal variables, with 2+ levels each
     :param data: data frame containing the independent and dependent variables
     :return: None
     """
@@ -188,6 +233,9 @@ def descriptive_plot(data):
 def descriptive_stats(data):
     """
     Print descriptive statistics for give data frame
+
+    # Note: Descriptive stats help check independent/causal vars (that are categorical) for even assignment/distribution
+    # Note: For scalar indepenent variables, you check for normal distribution (easy way: distribution plots)
     :param data: pandas dataframe we are exploring
     :return: None
     """
