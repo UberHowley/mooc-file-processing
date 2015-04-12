@@ -1,28 +1,30 @@
 __author__ = 'IH'
 __project__ = 'processMOOC'
 
-import utilsMOOC as utils
 import re
 from html.parser import HTMLParser
 from stop_words import get_stop_words
-from gensim import corpora, models, similarities
+from gensim import corpora, models
 
 class LDAtopicModel(object):
     """
     Class contains an LDA topic model for one set of documents.
     Mostly exists as a way to access (and setup) topic_names
     """
+    number_of_topics = 1
     docs = []
     topic_names = []
     lda = None
+    FORMAT_LINE = "--------------------"
 
-    def __init__(self, docs_as_bow):
+    def __init__(self, nt, docs_as_bow):
         """
         Initialize class with documents to train the model on
         :param docs_as_bow: a list of text documents as bags of words
         :return: None
         """
         self.docs = docs_as_bow
+        self.number_of_topics = nt
         self.create_lda()
 
     def create_lda(self):
@@ -34,7 +36,7 @@ class LDAtopicModel(object):
         :return: None
         """
         print("Creating LDA topic model from " + str(len(self.docs)) + " documents.")
-        num_topics = utils.NUM_LDA_TOPICS
+        num_topics = self.number_of_topics
         chunk_size = int(len(self.docs)/100)
         if chunk_size < 1:
             chunk_size = 1  # small number of sentences
@@ -53,20 +55,20 @@ class LDAtopicModel(object):
         dict_lda = corpora.Dictionary(texts)
         mm_corpus = [dict_lda.doc2bow(text) for text in texts]
         self.lda = models.ldamodel.LdaModel(corpus=mm_corpus, id2word=dict_lda, num_topics=num_topics, update_every=1, chunksize=chunk_size, passes=1)
-        #topics = lda.print_topics(utils.NUM_LDA_TOPICS)
+        #topics = lda.print_topics(self.number_of_topics)
 
         # get list of lda topic names
-        print(utils.FORMAT_LINE)
+        print(self.FORMAT_LINE)
         # printing each topic
-        for topic in self.lda.print_topics(utils.NUM_LDA_TOPICS):
+        for topic in self.lda.print_topics(self.number_of_topics):
             print(topic)
-        print(utils.FORMAT_LINE)
+        print(self.FORMAT_LINE)
 
         print("\n")
         print("- Begin naming topics -")
         # naming each topic
         i = 1
-        for topic in self.lda.print_topics(utils.NUM_LDA_TOPICS):
+        for topic in self.lda.print_topics(self.number_of_topics):
             print("\t(" + str(i) + ") "+ topic)
             self.topic_names.append(input("> A name for topic (" + str(i) + "): "))
             i += 1
