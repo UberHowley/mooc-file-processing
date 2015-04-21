@@ -50,6 +50,8 @@ dict_badge = {}
 dict_sentence = {}
 dict_voting = {}
 dict_user_id = {}
+dict_student_id = {}
+dict_version = {}
 
 instances_by_dupkey = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
 instances_by_id = {}  # instance ID -> instance object
@@ -82,7 +84,7 @@ def run():
     userfile_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     userfile_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    helperfile_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
+    helperfile_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_USERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_VERSION + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
 
     lda = ldat(utils.NUM_LDA_TOPICS, list_sentences)
     for qh_instance in list_no_duplicates:
@@ -181,10 +183,13 @@ def proc_user():
             # all duplicates get added to our condition dictionaries
             # since helper.log needs it (i.e., the first entry isn't
             # always the one that was shown!
+            # TODO: there must be a better way to handle this than with all these dictionaries
+            dict_student_id[col_instance_id] = col_user_id
             dict_badge[col_instance_id] = col_badge_shown
             dict_sentence[col_instance_id] = col_irrelevant_sentence
             dict_voting[col_instance_id] = col_voting
             dict_user_id[col_instance_id] = col_userid_shown
+            dict_version[col_instance_id] = col_version
 
             instances_by_id[col_instance_id] = user_instance  # need this for the click.log
 
@@ -227,7 +232,9 @@ def proc_helper():
             col_time = col_timestamp.time()
 
             # Constructing the new helper logfile line
-            line = col_helper_id + CONST_DELIMITER + col_instance_id + CONST_DELIMITER
+            line = col_helper_id + CONST_DELIMITER
+            line += str(dict_student_id.get(col_instance_id, "")) + CONST_DELIMITER
+            line += col_instance_id + CONST_DELIMITER
             line += col_badge_shown + CONST_DELIMITER + col4 + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
             line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
             line += str(col_date) + CONST_DELIMITER + str(col_time)
@@ -243,7 +250,11 @@ def proc_helper():
             # retrieve experimental conditions from dict
             if col_instance_id not in dict_badge:
                 print("WARNING: "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+" instance does not exist in" + FILENAME_USERLOG+EXTENSION_LOGFILE+": "+col_instance_id)
-            line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_sentence.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_voting.get(col_instance_id, "")) + CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
+            line += CONST_DELIMITER + str(dict_version.get(col_instance_id, ""))
+            line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, ""))
+            line += CONST_DELIMITER + str(dict_sentence.get(col_instance_id, ""))
+            line += CONST_DELIMITER + str(dict_voting.get(col_instance_id, ""))
+            line += CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
             # only store line if it's in our date range and it appeared in user.log
             if is_during_course(col_date) and col_instance_id in dict_helpers:  # that instance didn't occur in user.log:
@@ -545,7 +556,7 @@ def get_topic_match(sentence):
     :return: topic match percentage
     """
     if sentence.find("Teaching Assistants") >= 0:
-        return utils.CONST_TA
+        return ""
     else:
         tm = sentence[len(sentence)-7:len(sentence)-1]
         tm = float(tm.strip("abcdefghijklmnopqrstuvwxyz% "))
@@ -560,7 +571,7 @@ def get_num_weeks(sentence):
     :return: number of weeks been in the course
     """
     if sentence.find("Teaching Assistants") >= 0:
-        return utils.CONST_TA
+        return ""
     else:
         return sentence[sentence.find("week")-2: sentence.find("week")]
 
