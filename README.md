@@ -17,15 +17,16 @@ The main scripts are **logfileMOOC.py** and **statsMOOC.py**. Run logfileMOOC.py
 **QHInstance.py** an internal class representing one usage of the QuickHelper system: the users involved, the conditions shown, the number of helpers selected, the message title and body text, etc.
 
 ## logfiles
+Note: The logfiles contained in this github repository are simulated and not the real data gathered from the experiment.
 - **User.log:** A line in the Userfile Log represents what user-level variables the user saw (specific information about individual helpers shown is stored in the Helperfile Log).
-> ex: {"level":"info","message":"<DELIMITER>100<DELIMITER>1413061797181100<DELIMITER>1<DELIMITER>0<DELIMITER>1<DELIMITER>1<DELIMITER>0<DELIMITER>1833503<DELIMITER>2512601<DELIMITER>1657199<DELIMITER>title1<DELIMITER>body1<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
+> ex: {"level":"info","message":"(DELIMITER)100(DELIMITER)1413061797181100(DELIMITER)1(DELIMITER)0(DELIMITER)1(DELIMITER)1(DELIMITER)0(DELIMITER)1833503(DELIMITER)2512601(DELIMITER)1657199(DELIMITER)title1(DELIMITER)body1(DELIMITER)","timestamp":"2014-10-11T21:09:57.182Z"}
 > ex: Help Seeker User ID, Instance ID, Badge Shown?, Irrelevant Sentence Shown?, Voting Shown?, Anonymized Image Shown?, User ID Shown?, helper0, helper1, helper2, Question title, Question body
 - **Selection.log:** A line in the Helperfile Log represents one (of three maximum) of the helpers selected by user
-> ex: {"level":"info","message":"<DELIMITER>11<DELIMITER>0<DELIMITER>","timestamp":"2014-10-11T21:09:57.211Z"}
+> ex: {"level":"info","message":"(DELIMITER)11(DELIMITER)0(DELIMITER)","timestamp":"2014-10-11T21:09:57.211Z"}
 - **Helper.log:** A line in the Helperfile Log represents all the information specific to the helper that the user saw.
-> ex: {"level":"info","message":"<DELIMITER>1<DELIMITER>1413061797181100<DELIMITER>8<DELIMITER>http://i58.tinypic.com/2cgymgh.jpg<DELIMITER>3<DELIMITER>This student has been participating in the course for 1 weeks and the matching of his/her interest and the topic of your query is 100.0 .<DELIMITER>","timestamp":"2014-10-11T21:09:57.182Z"}
+> ex: {"level":"info","message":"(DELIMITER)1(DELIMITER)1413061797181100(DELIMITER)8(DELIMITER)http://i58.tinypic.com/2cgymgh.jpg(DELIMITER)3(DELIMITER)This student has been participating in the course for 1 weeks and the matching of his/her interest and the topic of your query is 100.0 .(DELIMITER)","timestamp":"2014-10-11T21:09:57.182Z"}
 - **Vote.log:** A line in the Helperfile Log represents one (of three maximum) of the helpers selected by user
-> ex: {"level":"info","message":"<DELIMITER>11<DELIMITER>0<DELIMITER>","timestamp":"2014-10-11T21:09:57.211Z"}
+> ex: {"level":"info","message":"(DELIMITER)11(DELIMITER)0(DELIMITER)","timestamp":"2014-10-11T21:09:57.211Z"}
 
 ## other info
 A description of the dataset and collection methods can be found here: www.irishowley.com/website/pMOOChelpers.html
