@@ -84,7 +84,15 @@ def run():
     userfile_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     userfile_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    helperfile_out.write(utils.COL_HELPERID+CONST_DELIMITER+utils.COL_USERID+CONST_DELIMITER+utils.COL_INSTANCEID+CONST_DELIMITER+utils.COL_NUMSTARS+CONST_DELIMITER+utils.COL_PREVHELPREQ+CONST_DELIMITER+utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE+CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER+utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_VERSION + CONST_DELIMITER + utils.COL_BADGE+ CONST_DELIMITER + utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME+"\n")
+    helper_headers = utils.COL_HELPERID + CONST_DELIMITER + utils.COL_USERID + CONST_DELIMITER + utils.COL_INSTANCEID
+    helper_headers += CONST_DELIMITER + utils.COL_NUMSTARS + CONST_DELIMITER + utils.COL_PREVHELPREQ + CONST_DELIMITER
+    helper_headers += utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE
+    helper_headers += CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER
+    helper_headers += utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_VERSION
+    helper_headers += CONST_DELIMITER + utils.COL_BADGE + CONST_DELIMITER + utils.COL_NUMSTARS+utils.COL_SHOWN + CONST_DELIMITER
+    helper_headers += utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_NUMWEEKS+utils.COL_SHOWN + CONST_DELIMITER + utils.COL_TOPICMATCH+utils.COL_SHOWN
+    helper_headers += CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME
+    helperfile_out.write(helper_headers+"\n")
 
     lda = ldat(utils.NUM_LDA_TOPICS, list_sentences)
     for qh_instance in list_no_duplicates:
@@ -214,13 +222,13 @@ def proc_helper():
             line = line[len(CONST_LINESTART): len(line)]  # Cut off the extra chars from beginning
             line = line.replace(CONST_DELIMITER, ' ')  # Replace all occurrences of delimiters with empty space
             line = line.replace(CONST_DELIMITERVAR,CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
-            # print(line)
+
             array_line = line.split(CONST_DELIMITER)
             col_helper_id = array_line[0]
             col_instance_id = array_line[1]
             col_helper_name = array_line[2]
-            col_badge_shown = get_badge_stars(array_line[3])
-            col4 = array_line[4]
+            col_badge_stars = get_badge_stars(array_line[3])
+            num_prev_inst = array_line[4]
             col_rec_sentence = array_line[5]
             col_irrel_sentence = "unknown"  # This was missing in the logs!
             col_num_weeks = get_num_weeks(col_rec_sentence)
@@ -235,7 +243,7 @@ def proc_helper():
             line = col_helper_id + CONST_DELIMITER
             line += str(dict_student_id.get(col_instance_id, "")) + CONST_DELIMITER
             line += col_instance_id + CONST_DELIMITER
-            line += col_badge_shown + CONST_DELIMITER + col4 + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
+            line += col_badge_stars + CONST_DELIMITER + num_prev_inst + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
             line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
             line += str(col_date) + CONST_DELIMITER + str(col_time)
 
@@ -251,9 +259,24 @@ def proc_helper():
             if col_instance_id not in dict_badge:
                 print("WARNING: "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+" instance does not exist in" + FILENAME_USERLOG+EXTENSION_LOGFILE+": "+col_instance_id)
             line += CONST_DELIMITER + str(dict_version.get(col_instance_id, ""))
+
+            # badges - add another column that has num stars only if in isBadgeShown condition
             line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, ""))
+            condition_shown = ""
+            if dict_badge.get(col_instance_id) == utils.VAL_IS: #or int(dict_badge.get(col_instance_id)) > 0:
+                condition_shown = col_badge_stars
+            line += CONST_DELIMITER + condition_shown
+
+            # sentences - add 2 columns that has topic match + weeks if in isRelevantSentence condition
             line += CONST_DELIMITER + str(dict_sentence.get(col_instance_id, ""))
+            condition_shown = CONST_DELIMITER
+            if dict_badge.get(col_instance_id) == utils.VAL_ISNOT: #or int(dict_sentence.get(col_instance_id)) < 1:
+                condition_shown = col_num_weeks + CONST_DELIMITER + col_topic_match  # could add the relevant sentence here, if desired
+            line += CONST_DELIMITER + condition_shown
+
+            # voting
             line += CONST_DELIMITER + str(dict_voting.get(col_instance_id, ""))
+            # user id
             line += CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
             # only store line if it's in our date range and it appeared in user.log
