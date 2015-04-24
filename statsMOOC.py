@@ -285,8 +285,10 @@ def topic_stats(data):
     :param data: pandas dataframe we are exploring
     :return: None
     """
-    topic_data = data[[utils.COL_TOPIC, utils.COL_NUMHELPERS]]
-    print(topic_data.head())
+    try:
+        topic_data = data[[utils.COL_TOPIC, utils.COL_NUMHELPERS]]
+    except KeyError:
+        print("ERROR in statsMOOC.py: No such column as " + utils.COL_TOPIC + ". Did you run logfileMOOC.py?")
 
     # descriptive stats
     print(utils.FORMAT_LINE)
