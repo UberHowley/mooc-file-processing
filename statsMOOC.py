@@ -286,7 +286,7 @@ def topic_stats(data):
     :return: None
     """
     try:
-        topic_data = data[[utils.COL_TOPIC, utils.COL_NUMHELPERS]]
+        topic_data = data[[utils.COL_TOPIC, utils.COL_NUMHELPERS]].dropna()
     except KeyError:
         print("ERROR in statsMOOC.py: No such column as " + utils.COL_TOPIC + ". Did you run logfileMOOC.py?")
 
@@ -309,6 +309,25 @@ def topic_stats(data):
     ax2 = df_compare.plot(kind='bar', title=utils.COL_TOPIC)
     ax2.set_xlabel(utils.COL_TOPIC)
     ax2.set_ylabel("mean " + utils.COL_NUMHELPERS)
+    plt.show()
+
+    # One Way ANOVA
+    cond_lm = ols(utils.COL_NUMHELPERS + " ~ C(" + utils.COL_TOPIC + ")", data=topic_data).fit()
+    anova_table = anova_lm(cond_lm)
+
+    print("\n"+utils.FORMAT_LINE)
+    print("One-Way ANOVA: " + utils.COL_TOPIC)
+    print(utils.FORMAT_LINE)
+    print(anova_table)
+    #print(cond_lm.model.data.orig_exog)
+    print(cond_lm.summary())
+
+    # boxplot of topics --> num helpers selected
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax = topic_data.boxplot(utils.COL_NUMHELPERS, utils.COL_TOPIC, ax=plt.gca())
+    ax.set_xlabel(utils.COL_TOPIC)
+    ax.set_ylabel(utils.COL_NUMHELPERS)
     plt.show()
 
 
