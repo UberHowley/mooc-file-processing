@@ -47,6 +47,10 @@ def run():
     if is_yes(user_input):
         anova_interaction(data)
 
+    user_input = input("> Do analysis of message post topics? [y/n]: ")
+    if is_yes(user_input):
+        topic_stats(data)
+
 
 def is_yes(stri):
     """
@@ -274,6 +278,37 @@ def descriptive_stats(data):
     print("Counts & Mean " + utils.COL_NUMHELPERS + " for: \'" + utils.COL_VERSION+"\'")
     print(pd.concat([data.groupby(utils.COL_VERSION)[utils.COL_VERSION].count(), data.groupby(utils.COL_VERSION)[utils.COL_NUMHELPERS].mean()], axis=1))
     print(utils.FORMAT_LINE)
+
+def topic_stats(data):
+    """
+    Do basic analysis of LDA topics
+    :param data: pandas dataframe we are exploring
+    :return: None
+    """
+    topic_data = data[[utils.COL_TOPIC, utils.COL_NUMHELPERS]]
+    print(topic_data.head())
+
+    # descriptive stats
+    print(utils.FORMAT_LINE)
+    print(topic_data.describe())
+    print(topic_data[utils.COL_TOPIC].describe())
+    print(utils.FORMAT_LINE)
+
+    fig = plt.figure()
+    # bar chart of topics
+    ax1 = fig.add_subplot(121)
+    df_compare = topic_data.groupby(utils.COL_TOPIC)[utils.COL_TOPIC].count()  # displays num instances assigned to each condition
+    ax1 = df_compare.plot(kind='bar', title=utils.COL_TOPIC)
+    ax1.set_xlabel(utils.COL_TOPIC)
+    ax1.set_ylabel("count instances")
+    # scatter plot
+    ax2 = fig.add_subplot(122)
+    df_compare = data.groupby(utils.COL_TOPIC)[utils.COL_NUMHELPERS].mean()  # displays num helpers selected in each topic
+    ax2 = df_compare.plot(kind='bar', title=utils.COL_TOPIC)
+    ax2.set_xlabel(utils.COL_TOPIC)
+    ax2.set_ylabel("mean " + utils.COL_NUMHELPERS)
+    plt.show()
+
 
 '''
 ...So that statsMOOC can act as either a reusable module, or as a standalone program.
