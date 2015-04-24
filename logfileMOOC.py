@@ -43,18 +43,12 @@ BADGE_FOUR_TXT = "4"
 
 # mapping from instance ID to conditions (badge, sentence, voting, userid)
 count_repeat = 0
-dict_last_digs = {}
+instances_by_id = {}  # instance ID -> instance object QHInstance
 dict_helpers = defaultdict(list)  # instanceID -> a list of helper IDs shown
 dict_selected_helpers = defaultdict(list)  # instanceID -> a list of helper IDs that were selected
-dict_badge = {}
-dict_sentence = {}
-dict_voting = {}
-dict_user_id = {}
-dict_student_id = {}
-dict_version = {}
+
 
 instances_by_dupkey = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
-instances_by_id = {}  # instance ID -> instance object
 dict_all_helpers = defaultdict(list)  # instance_id -> list (3) helper logfile entries to remove duplicates from later
 dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
 list_no_duplicates = []  # a list of instances with duplicates removed
@@ -84,14 +78,14 @@ def run():
     userfile_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     userfile_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    helper_headers = utils.COL_HELPERID + CONST_DELIMITER + utils.COL_USERID + CONST_DELIMITER + utils.COL_INSTANCEID
+    helper_headers = utils.COL_HELPERID + CONST_DELIMITER + utils.COL_INSTANCEID
     helper_headers += CONST_DELIMITER + utils.COL_NUMSTARS + CONST_DELIMITER + utils.COL_PREVHELPREQ + CONST_DELIMITER
     helper_headers += utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE
     helper_headers += CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER
-    helper_headers += utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED + CONST_DELIMITER + utils.COL_VERSION
-    helper_headers += CONST_DELIMITER + utils.COL_BADGE + CONST_DELIMITER + utils.COL_NUMSTARS+utils.COL_SHOWN + CONST_DELIMITER
-    helper_headers += utils.COL_IRRELEVANT + CONST_DELIMITER + utils.COL_NUMWEEKS+utils.COL_SHOWN + CONST_DELIMITER + utils.COL_TOPICMATCH+utils.COL_SHOWN
-    helper_headers += CONST_DELIMITER + utils.COL_VOTING + CONST_DELIMITER + utils.COL_USERNAME
+    helper_headers += utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED
+    helper_headers += CONST_DELIMITER + utils.COL_NUMSTARS+utils.COL_SHOWN + CONST_DELIMITER
+    helper_headers += utils.COL_NUMWEEKS+utils.COL_SHOWN + CONST_DELIMITER + utils.COL_TOPICMATCH+utils.COL_SHOWN
+    helper_headers += CONST_DELIMITER + QHInstance.get_headers(delimiter=CONST_DELIMITER)  # adding all instance info to end of each helper line
     helperfile_out.write(helper_headers+"\n")
 
     lda = ldat(utils.NUM_LDA_TOPICS, list_sentences)
@@ -102,10 +96,11 @@ def run():
         topic_name = lda.predict_topic(" ".join([getattr(qh_instance, 'question_title', ''), getattr(qh_instance,'question_body','')]))
         setattr(qh_instance, 'lda_topic', topic_name)
         # write user instance to file
-        userfile_out.write(qh_instance.to_string(delimiter=utils.CONST_DELIMITER)+'\n')
+        userfile_out.write(qh_instance.to_string(delimiter=CONST_DELIMITER)+'\n')
 
         # print associated helpers to the helper.log
         for helper_line in dict_all_helpers[getattr(qh_instance, 'instance_id')]:
+            helper_line += CONST_DELIMITER + qh_instance.to_string(delimiter=CONST_DELIMITER)  # adding all instance info to end of helper lines
             helperfile_out.write(helper_line+'\n')
     userfile_out.close()
     helperfile_out.close()
@@ -130,7 +125,7 @@ def proc_user():
             line = line.replace(CONST_DELIMITERVAR, CONST_DELIMITER)  # Replace delimiter stand-in with actual delimiters
             array_line = line.split(CONST_DELIMITER)
             #print(str(len(array_line))+" " +line)
-            col_user_id= array_line[0]
+            col_user_id = array_line[0]
             col_instance_id = array_line[1]
             col_badge_shown = array_line[2]
             col_irrelevant_sentence = array_line[3]
@@ -145,6 +140,9 @@ def proc_user():
 
             # processing the timestamp
             col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
+
+            # determining if this is a help request
+            col_help_req = is_help_topic(col_ques_title + " " + col_ques_body)
 
             #  processing extra column with a URL
             col_url = ""
@@ -178,7 +176,7 @@ def proc_user():
                 col_userid_shown = utils.VAL_ISNOT
 
             # Create QHInstance
-            user_instance = QHInstance(col_user_id, col_instance_id, col_version, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body, col_url, col_timestamp)
+            user_instance = QHInstance(col_user_id, col_instance_id, col_version, col_badge_shown, col_irrelevant_sentence, col_voting, col_anon_img, col_userid_shown,col_helper0, col_helper1, col_helper2, col_ques_title, col_ques_body, col_url, col_timestamp, col_help_req)
 
 
             # keeping track of instances for printing late (if in correct date range)
@@ -188,17 +186,9 @@ def proc_user():
             if is_during_course(col_timestamp.date()) and not is_researcher(col_user_id) and len(col_ques_body) > 10:
                 instances_by_dupkey[user_instance.get_duplicate_key()].append(user_instance)
 
-            # all duplicates get added to our condition dictionaries
+            # all duplicates get added to our dictionary of instances
             # since helper.log needs it (i.e., the first entry isn't
             # always the one that was shown!
-            # TODO: there must be a better way to handle this than with all these dictionaries
-            dict_student_id[col_instance_id] = col_user_id
-            dict_badge[col_instance_id] = col_badge_shown
-            dict_sentence[col_instance_id] = col_irrelevant_sentence
-            dict_voting[col_instance_id] = col_voting
-            dict_user_id[col_instance_id] = col_userid_shown
-            dict_version[col_instance_id] = col_version
-
             instances_by_id[col_instance_id] = user_instance  # need this for the click.log
 
             # Add helper IDs to dictionary of instances to helpers
@@ -241,7 +231,6 @@ def proc_helper():
 
             # Constructing the new helper logfile line
             line = col_helper_id + CONST_DELIMITER
-            line += str(dict_student_id.get(col_instance_id, "")) + CONST_DELIMITER
             line += col_instance_id + CONST_DELIMITER
             line += col_badge_stars + CONST_DELIMITER + num_prev_inst + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
             line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
@@ -256,28 +245,20 @@ def proc_helper():
             line += CONST_DELIMITER + str(was_selected)
 
             # retrieve experimental conditions from dict
-            if col_instance_id not in dict_badge:
+            if col_instance_id not in instances_by_id:
                 print("WARNING: "+FILENAME_HELPERLOG+EXTENSION_LOGFILE+" instance does not exist in" + FILENAME_USERLOG+EXTENSION_LOGFILE+": "+col_instance_id)
-            line += CONST_DELIMITER + str(dict_version.get(col_instance_id, ""))
 
             # badges - add another column that has num stars only if in isBadgeShown condition
-            line += CONST_DELIMITER + str(dict_badge.get(col_instance_id, ""))
             condition_shown = ""
-            if dict_badge.get(col_instance_id) == utils.VAL_IS: #or int(dict_badge.get(col_instance_id)) > 0:
+            if str(getattr(instances_by_id[col_instance_id], "cond_badge", "")) == utils.VAL_IS: #or int(dict_badge.get(col_instance_id)) > 0:
                 condition_shown = col_badge_stars
             line += CONST_DELIMITER + condition_shown
 
             # sentences - add 2 columns that has topic match + weeks if in isRelevantSentence condition
-            line += CONST_DELIMITER + str(dict_sentence.get(col_instance_id, ""))
             condition_shown = CONST_DELIMITER
-            if dict_badge.get(col_instance_id) == utils.VAL_ISNOT: #or int(dict_sentence.get(col_instance_id)) < 1:
+            if str(getattr(instances_by_id[col_instance_id], "cond_irrelevant_sentence", "")) == utils.VAL_ISNOT: #or int(dict_sentence.get(col_instance_id)) < 1:
                 condition_shown = col_num_weeks + CONST_DELIMITER + col_topic_match  # could add the relevant sentence here, if desired
             line += CONST_DELIMITER + condition_shown
-
-            # voting
-            line += CONST_DELIMITER + str(dict_voting.get(col_instance_id, ""))
-            # user id
-            line += CONST_DELIMITER + str(dict_user_id.get(col_instance_id, ""))
 
             # only store line if it's in our date range and it appeared in user.log
             if is_during_course(col_date) and col_instance_id in dict_helpers:  # that instance didn't occur in user.log:
@@ -322,7 +303,7 @@ def proc_selection():
                 array_helpers = dict_helpers[col_instance_id]  # all helpers shown for this instance
                 helper_id = ""
                 if len(array_helpers) < int(col_helper_selected)+1:  # less helpers than the index of this helper
-                    print("WARNING: Helper index ("+col_helper_selected+") referenced in " + FILENAME_SELECTIONLOG+EXTENSION_LOGFILE+" is outside possible number of helpers (i.e., "+str(len(array_helpers))+"): " + col_instance_id)
+                    print("WARNING: Helper index ("+col_helper_selected+") referenced in " + FILENAME_SELECTIONLOG+EXTENSION_LOGFILE+" is outside possible number of helpers (i.e., "+str(len(array_helpers))+") for instance #: " + col_instance_id)
                 elif 0 <= int(col_helper_selected) <= 2:  # valid index is 0, 1, or 2
                     helper_id = array_helpers[int(col_helper_selected)]
                 else:  # we have an invalid helper index
@@ -597,6 +578,19 @@ def get_num_weeks(sentence):
         return ""
     else:
         return sentence[sentence.find("week")-2: sentence.find("week")]
+
+def is_help_topic(sentence):
+    """
+    Determine if the given string (message post) contains a question or help request.
+    :param sentence: a string sentence / message post
+    :return: True if the string is about help seeking
+    """
+    # TODO: this is a super naive way to determine this
+    if "help" in sentence or "question" in sentence or "?" in sentence or "dunno" in sentence or "n't know" in sentence:
+        return True
+    if "confus" in sentence or "struggl" in sentence or "lost" in sentence or "stuck" in sentence or "know how" in sentence:
+        return True
+    return False
 
 '''
 So that logfileMOOC can act as either a reusable module, or as a standalone program.

@@ -28,8 +28,9 @@ class QHInstance(object):
     timestamp = None
     url = ""
     lda_topic = ""
+    is_help_topic = ""
 
-    def __init__(self, uid, iid, cvers, cb, cis, cv, cai, cui, h0, h1, h2, qt, qb, u, ts):
+    def __init__(self, uid, iid, cvers, cb, cis, cv, cai, cui, h0, h1, h2, qt, qb, u, ts, hr):
         """
         Initialize a new QHInstance with the necessary information
         :param uid: user id
@@ -47,6 +48,7 @@ class QHInstance(object):
         :param qb: question/post body
         :param u: url
         :param ts: timestamp
+        :param hr: is help request
         :return: None
         """
         self.user_id = uid
@@ -64,13 +66,14 @@ class QHInstance(object):
         self.question_body = qb
         self.url = u
         self.timestamp = ts
+        self.is_help_topic = hr
 
     def __copy__(self):
         """
         Overwrite the copy operator (probably not necessary as these are all primitive types)
         :return: None
         """
-        new_instance = type(self)(self.user_id, self.instance_id, self.version, self.cond_badge, self.cond_irrelevant_sentence, self.cond_voting, self.cond_anon_img, self.cond_user_id, self.id_helper0, self.id_helper1, self.id_helper2, self.question_title, self.question_body,self.url, self.timestamp)
+        new_instance = type(self)(self.user_id, self.instance_id, self.version, self.cond_badge, self.cond_irrelevant_sentence, self.cond_voting, self.cond_anon_img, self.cond_user_id, self.id_helper0, self.id_helper1, self.id_helper2, self.question_title, self.question_body,self.url, self.timestamp, self.is_help_topic)
         setattr(new_instance, 'version', self.version)
         setattr(new_instance, 'num_helpers_selected', self.num_helpers_selected)
         return new_instance
@@ -97,7 +100,7 @@ class QHInstance(object):
         :param delimiter: character to split each column header
         :return: None
         """
-        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_VERSION + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_TOPIC + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_URL + delimiter +utils.COL_DATE + delimiter + utils.COL_TIME
+        return utils.COL_USERID + delimiter + utils.COL_INSTANCEID + delimiter + utils.COL_VERSION + delimiter + utils.COL_BADGE + delimiter + utils.COL_IRRELEVANT + delimiter + utils.COL_VOTING + delimiter + utils.COL_ANONIMG + delimiter + utils.COL_USERNAME + delimiter + utils.COL_HELPER0 + delimiter + utils.COL_HELPER1 + delimiter + utils.COL_HELPER2 + delimiter + utils.COL_NUMHELPERS + delimiter + utils.COL_TOPIC + delimiter + utils.COL_QTITLE + delimiter + utils.COL_QBODY + delimiter + utils.COL_URL + delimiter +utils.COL_DATE + delimiter + utils.COL_TIME + delimiter + utils.COL_HELP_TOPIC
 
     def to_string(self, delimiter):
         """
@@ -110,6 +113,7 @@ class QHInstance(object):
         line += delimiter + str(self.cond_anon_img) + delimiter + str(self.cond_user_id) + delimiter + str(self.id_helper0)
         line += delimiter + str(self.id_helper1) + delimiter + str(self.id_helper2) + delimiter + str(self.num_helpers_selected)
         line += delimiter + self.lda_topic + delimiter + self.question_title + delimiter + self.question_body + delimiter
-        line += self.url + delimiter + str(self.timestamp.date()) + delimiter + str(self.timestamp.time())
+        line += self.url + delimiter + str(self.timestamp.date()) + delimiter + str(self.timestamp.time()) + delimiter
+        line += str(self.is_help_topic)
         return line
 

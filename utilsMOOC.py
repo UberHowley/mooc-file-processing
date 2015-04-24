@@ -23,7 +23,7 @@ CONST_FIRST_DAY = datetime.date(2014, 10, 27)  # the first day system worked pro
 CONST_LAST_DAY = datetime.date(2014, 12, 17)
 
 # User Inputs
-NUM_LDA_TOPICS = 10  # number of topics in topic model
+NUM_LDA_TOPICS = 20  # number of topics in topic model
 CONST_MIN_USERID = 0  # limiting student user IDs
 
 # exclude these [researcher] IDs:
@@ -42,6 +42,7 @@ COL_USERID = "userID"
 COL_INSTANCEID = "instanceID"
 COL_DATE = "Date"
 COL_TIME = "Time"
+COL_HELP_TOPIC = "isHelpRequest"
 # conditions
 COL_BADGE = "isBadgeCondition"
 COL_IRRELEVANT = "isIrrelevantSentence"
@@ -57,6 +58,7 @@ COL_HELPER1 = "helper1"
 COL_HELPER2 = "helper2"
 COL_NUMHELPERS = "numHelpersSelected"
 COL_VERSION = "version"
+COL_SHOWN = "_shown"
 CONST_TA = "TA"
 CONST_STUDENT = "student"
 # helper.log
