@@ -59,7 +59,15 @@ def run():
             topic_data = data[[utils.COL_TOPIC]+conditions+[utils.COL_VERSION, utils.COL_NUMHELPERS]].dropna()
         except KeyError:
             print("ERROR in statsMOOC.py: No such column as " + utils.COL_TOPIC + ". Did you run logfileMOOC.py?")
-        topic_stats(topic_data)
+        one_stats(topic_data)
+
+    user_input = input("> Do analysis of help requests? [y/n]: ")
+    if is_yes(user_input):
+        try:
+            help_data = data[[utils.COL_HELP_TOPIC]+conditions+[utils.COL_VERSION, utils.COL_NUMHELPERS]].dropna()
+        except KeyError:
+            print("ERROR in statsMOOC.py: No such column as " + utils.COL_HELP_TOPIC + ". Did you run logfileMOOC.py?")
+        one_stats(help_data)
 
 
 def is_yes(stri):
@@ -298,43 +306,43 @@ def descriptive_stats(data_lastDV):
         print("Counts & Mean " + outcome + " for: \'" + cond)
         print(pd.concat([df_conditions.groupby(cond)[cond].count(), df_conditions.groupby(cond)[outcome].mean()], axis=1))
 
-def topic_stats(topic_data_lastDV):
+def one_stats(data_lastDV):
     """
-    Do basic analysis of LDA topics
-    :param data: pandas dataframe we are exploring (topic in first column, followed by IVs, and DV in last index)
+    Do basic analysis of one IV onto one DV
+    :param data: pandas dataframe we are exploring (IV-of-interest in first column, followed by IVs, and DV in last index)
     :return: None
     """
-    col_names = topic_data_lastDV.columns.values.tolist()  # get the columns' names
-    topic = col_names.pop(0)  # first item is the topic
+    col_names = data_lastDV.columns.values.tolist()  # get the columns' names
+    causal = col_names.pop(0)  # first item is the topic
     outcome = col_names.pop()  # remove the last item in the list
-    topic_data = topic_data_lastDV[[topic, outcome]]
+    topic_data = data_lastDV[[causal, outcome]]
 
     # descriptive stats
     print(utils.FORMAT_LINE)
-    print(topic_data[topic].describe())
+    print(topic_data[causal].describe())
     print(utils.FORMAT_LINE)
 
     fig = plt.figure()
     # bar chart of topics
     ax1 = fig.add_subplot(121)
-    df_compare = topic_data.groupby(topic)[topic].count()  # displays num instances assigned to each condition
-    ax1 = df_compare.plot(kind='bar', title=topic)
-    ax1.set_xlabel(topic)
+    df_compare = topic_data.groupby(causal)[causal].count()  # displays num instances assigned to each condition
+    ax1 = df_compare.plot(kind='bar', title=causal)
+    ax1.set_xlabel(causal)
     ax1.set_ylabel("count instances")
     # scatter plot
     ax2 = fig.add_subplot(122)
-    df_compare = topic_data_lastDV.groupby(topic)[outcome].mean()  # displays num helpers selected in each topic
-    ax2 = df_compare.plot(kind='bar', title=topic)
-    ax2.set_xlabel(topic)
+    df_compare = data_lastDV.groupby(causal)[outcome].mean()  # displays num helpers selected in each topic
+    ax2 = df_compare.plot(kind='bar', title=causal)
+    ax2.set_xlabel(causal)
     ax2.set_ylabel("mean " + outcome)
     plt.show()
 
     # One Way ANOVA
-    cond_lm = ols(outcome + " ~ C(" + topic + ")", data=topic_data).fit()
+    cond_lm = ols(outcome + " ~ C(" + causal + ")", data=topic_data).fit()
     anova_table = anova_lm(cond_lm)
 
     print("\n"+utils.FORMAT_LINE)
-    print("One-Way ANOVA: " + topic + " -->" + outcome)
+    print("One-Way ANOVA: " + causal + " -->" + outcome)
     print(utils.FORMAT_LINE)
     print(anova_table)
     #print(cond_lm.model.data.orig_exog)
@@ -343,14 +351,14 @@ def topic_stats(topic_data_lastDV):
     # boxplot of topics --> num helpers selected
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax = topic_data.boxplot(outcome, topic, ax=plt.gca())
-    ax.set_xlabel(topic)
+    ax = topic_data.boxplot(outcome, causal, ax=plt.gca())
+    ax.set_xlabel(causal)
     ax.set_ylabel(outcome)
     plt.show()
 
     for cond in col_names:
-        anova_interaction(topic_data_lastDV[[topic, cond, outcome]])
-        plot_interaction(topic_data_lastDV[[topic, cond, outcome]])
+        anova_interaction(data_lastDV[[causal, cond, outcome]])
+        plot_interaction(data_lastDV[[causal, cond, outcome]])
 
 '''
 ...So that statsMOOC can act as either a reusable module, or as a standalone program.

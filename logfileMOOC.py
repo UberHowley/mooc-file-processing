@@ -142,7 +142,9 @@ def proc_user():
             col_timestamp = get_timestamp(array_line[len(array_line) - 1])  # We know the last column is always a timestamp
 
             # determining if this is a help request
-            col_help_req = is_help_topic(col_ques_title + " " + col_ques_body)
+            col_help_req = utils.VAL_ISNOT
+            if is_help_topic(col_ques_title + " " + col_ques_body):
+                col_help_req = utils.VAL_IS
 
             #  processing extra column with a URL
             col_url = ""
