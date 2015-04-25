@@ -47,7 +47,6 @@ instances_by_id = {}  # instance ID -> instance object QHInstance
 dict_helpers = defaultdict(list)  # instanceID -> a list of helper IDs shown
 dict_selected_helpers = defaultdict(list)  # instanceID -> a list of helper IDs that were selected
 
-
 instances_by_dupkey = defaultdict(list)  # dup key -> instance objects, keeping track of all items by duplicate key
 dict_all_helpers = defaultdict(list)  # instance_id -> list (3) helper logfile entries to remove duplicates from later
 dict_num_helpers = {}  # instance_id -> num helpers selected, to add to our instances
@@ -90,8 +89,6 @@ def run():
 
     lda = ldat(utils.NUM_LDA_TOPICS, list_sentences)
     for qh_instance in list_no_duplicates:
-        # set the selected number of helpers for each instance
-        setattr(qh_instance, 'num_helpers_selected', dict_num_helpers.get(getattr(qh_instance, 'instance_id'), 0))
         # assign LDA topic
         topic_name = lda.predict_topic(" ".join([getattr(qh_instance, 'question_title', ''), getattr(qh_instance,'question_body','')]))
         setattr(qh_instance, 'lda_topic', topic_name)
@@ -160,7 +157,9 @@ def proc_user():
                 col_badge_shown = utils.VAL_IS
             else:
                 col_badge_shown = utils.VAL_ISNOT
-            if int(col_irrelevant_sentence):
+            if col_version is utils.CONST_TA:  # if this is the TA version, there is no relevant/irrelevant sentence
+                col_irrelevant_sentence = ""
+            elif int(col_irrelevant_sentence):
                 col_irrelevant_sentence = utils.VAL_IS
             else:
                 col_irrelevant_sentence = utils.VAL_ISNOT
@@ -425,22 +424,23 @@ def proc_click():
 
 def remove_duplicates():
     """
-     Remove duplicates from our list of instances, based on whatever key was used in duplicate_instances
-    Also removes duplicate from our helper logs
+    Remove duplicates from our list of instances, based on whatever key was used in duplicate_instances
     :return: A list of QHInstances with all duplicates removed
     """
     for duplicate_key in instances_by_dupkey:  # iterate through each key in our duplicate-arranged list
         selected_dup = None  # instance with a selection (the one shown)
         for dup in instances_by_dupkey[duplicate_key]:  # for each instance object in these duplicates
-            if getattr(dup, utils.COL_NUMHELPERS, 0) > 0:  # If it has helpers selected, it's the one
+            num_helpers = dict_num_helpers.get(getattr(dup, 'instance_id'), 0)
+            if num_helpers > 0:  # If it has helpers selected, it's the one
                 selected_dup = dup
+                setattr(dup, 'num_helpers_selected', num_helpers)
         if selected_dup is None:
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
-        # Store this sentence, too
+        # Store this sentence, too (for topic modeling)
         list_sentences.append(ldat.clean_string(" ".join([getattr(selected_dup, 'question_title', ''), ' '+getattr(selected_dup,'question_body','')])))
 
-        if len(instances_by_dupkey[duplicate_key]) > 1:  # if we have more than one value attached to this key, they're duplicates
+        if len(instances_by_dupkey[duplicate_key]) > 1:  # counting our duplicates
             global count_repeat
             count_repeat += len(instances_by_dupkey[duplicate_key])-1
     return list_no_duplicates
