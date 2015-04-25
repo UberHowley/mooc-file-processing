@@ -4,10 +4,16 @@ __project__ = 'processMOOC'
 import pandas as pd
 import utilsMOOC as utils
 import matplotlib.pyplot as plt
+from scipy import stats
+import numpy as np
 from statsmodels.formula.api import ols
-from statsmodels.graphics.api import interaction_plot, abline_plot
+from statsmodels.graphics.api import interaction_plot
 from statsmodels.stats.anova import anova_lm
 from statsmodels.stats.weightstats import ttest_ind
+
+VAL_IS = utils.VAL_IS
+VAL_ISNOT = utils.VAL_ISNOT
+FORMAT_LINE = utils.FORMAT_LINE
 
 def run():
     """
@@ -19,8 +25,18 @@ def run():
         data = pd.io.parsers.read_csv(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED, encoding="utf-8-sig")
     except OSError as e:
         print("ERROR: " +str(utils.FILENAME_USERLOG+utils.EXTENSION_PROCESSED) +" does not exist. Did you run logfileMOOC.py?")
+    try:
+        helper_data = pd.io.parsers.read_csv(utils.FILENAME_HELPERLOG+utils.EXTENSION_PROCESSED, encoding="utf-8-sig")
+    except OSError as e:
+        print("ERROR: " +str(utils.FILENAME_HELPERLOG+utils.EXTENSION_PROCESSED) +" does not exist. Did you run logfileMOOC.py?")
+
     conditions = [utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_ANONIMG]  # all our categorical IVs
     # TODO: decide if 'conditions' should include version or not
+
+    orig_data = helper_data[[utils.COL_NUMSTARS+utils.COL_SHOWN, utils.COL_WASSELECTED]].dropna()
+    converted = orig_data[[utils.COL_NUMSTARS+utils.COL_SHOWN]].apply(lambda f: convert_badge_stars(f), axis=1)
+    print(converted.tail())
+    chi_square(converted)
 
     user_input = input("> Print descriptive statistics? [y/n]: ")
     if is_yes(user_input):
@@ -31,7 +47,7 @@ def run():
 
     user_input = input(">> Display descriptive plot of " + utils.COL_NUMHELPERS + "? [y/n]: ")
     if is_yes(user_input):
-        descriptive_plot(data)
+        descriptive_plot(data[[utils.COL_DATE, utils.COL_NUMHELPERS]])
 
     user_input = input("> Display comparison plots of conditions -> "+utils.COL_NUMHELPERS+"? [y/n]: ")
     if is_yes(user_input):
@@ -52,6 +68,16 @@ def run():
         user_input = input(">> Display Interaction plot? [y/n]: ")
         if is_yes(user_input):
             plot_interaction(exp_data)
+
+    user_input = input("> Do linear regression analyses? [y/n]: ")
+    if is_yes(user_input):
+        print("WARNING: Don't have any numerical causal --> numerical outcome predictions yet!")
+        #linear_regression(helper_data[[utils.COL_NUMSTARS+utils.COL_SHOWN, utils.COL_WASSELECTED]].dropna())
+
+    user_input = input("> Do chi-square analyses? [y/n]: ")
+    if is_yes(user_input):
+        print("WARNING: Don't have any categorical causal --> categorical outcome predictions yet!")
+        #chi_square()
 
     user_input = input("> Do analysis of message post topics? [y/n]: ")
     if is_yes(user_input):
@@ -78,6 +104,82 @@ def is_yes(stri):
     """
     return 'y' in stri.lower()
 
+def convert_badge_stars(star):
+    """
+    Convert the given badge star from a number to a category
+    :param star: the number of stars
+    :return: a categorical representation of the number of stars
+    """
+    dict = {0: "zero", 1: "one", 2: "two", 3: "three", 4: "four"}
+    return dict[star]
+
+def linear_regression(data_lastDV):
+    """
+    Compute slope, intercept of best fit line...and plot, if desired
+    http://stackoverflow.com/questions/19379295/linear-regression-with-pandas-dataframe
+    Note: linear regression is for a numerical causal variable predicting a numerical outcome variable
+    :param data_lastDV: dataframe where outcome variable is last, all other columns should be numerical
+    """
+    data_lastDV = data_lastDV.dropna()
+    col_names = data_lastDV.columns.values.tolist()  # get the columns' names
+    outcome = col_names.pop()  # remove the last item in the list
+
+    fig = plt.figure()
+    i = 1
+    rows = 2  # TODO: determine how best to distribute plots based on num analyses
+    for cond in col_names:
+        x = data_lastDV[[cond]].values
+        y = data_lastDV[[outcome]].values
+
+        '''
+        X = sm.add_constant(x)
+        model = sm.OLS(y, X, missing='drop')  # ignores entries where x or y is NaN
+        fit = model.fit()
+        m = fit.params[1]
+        b = fit.params[0]
+        # could also retrieve stderr in each via fit.bse
+        '''
+
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+        print(FORMAT_LINE)
+        print("Linear regression: " + cond + " --> " + outcome)
+        print("[slope, intercept, r_value, p_value, std_err]: " + str(stats.linregress(x,y)))
+        print("r-squared:", r_value**2)
+        print(FORMAT_LINE)
+
+        # plotting
+        N = 100  # could be just 2 if you are only drawing a straight line...
+        points = np.linspace(x.min(), x.max(), N)
+        ax = fig.add_subplot(rows, len(col_names)/rows, i)
+        ax = plt.plot(points, slope*points + intercept)
+
+        i+= 1
+
+    user_input = input(">> Display linear regression plot? [y/n]: ")
+    if is_yes(user_input):
+        fig.tight_layout()
+        plt.show()
+
+def chi_square(data_lastDV):
+    """
+    Compute frequencies and do a Chi-Squared test.
+    http://nbviewer.ipython.org/github/dboyliao/cookbook-code/blob/master/notebooks/chapter07_stats/04_correlation.ipynb
+    Note: chi-square tests are for when the outcome variable is categorical
+    :param data_lastDV: dataframe where outcome variable is last, all other columns should be numerical
+    """
+    data_lastDV = data_lastDV.dropna()
+    col_names = data_lastDV.columns.values.tolist()  # get the columns' names
+    outcome = col_names.pop()  # remove the last item in the list
+
+    for cond in col_names:
+        x = data_lastDV[[cond]].values
+        y = data_lastDV[[outcome]].values
+
+        # create a contingency table, with the frequencies of all possibilities
+        cont_table = pd.crosstab(y, x)
+        # compute the chi-square test statistic and the associated p-value.
+        stats.chi2_contingency(cont_table.values)
+
 def t_test(data_lastDV):
     """
     T-test to predict each condition --> num helpers selected
@@ -97,12 +199,12 @@ def t_test(data_lastDV):
 
     for cond in col_names:
         df = data_lastDV[[cond, outcome]].dropna()
-        cat1 = df[df[cond] == utils.VAL_IS][outcome]
-        cat2 = df[df[cond] == utils.VAL_ISNOT][outcome]
+        cat1 = df[df[cond] == VAL_IS][outcome]
+        cat2 = df[df[cond] == VAL_ISNOT][outcome]
 
-        print("\n"+utils.FORMAT_LINE)
+        print("\n"+FORMAT_LINE)
         print("T-test: " + cond)
-        print(utils.FORMAT_LINE)
+        print(FORMAT_LINE)
         print(ttest_ind(cat1, cat2))  # returns t-stat, p-value, and degrees of freedom
         print("(t-stat, p-value, df)")
 
@@ -137,9 +239,9 @@ def one_way_anova(data_lastDV):
         cond_lm = ols(outcome + " ~ C(" + cond + ")", data=cond_table).fit()
         anova_table = anova_lm(cond_lm)
 
-        print("\n"+utils.FORMAT_LINE)
+        print("\n"+FORMAT_LINE)
         print("One-Way ANOVA: " + cond)
-        print(utils.FORMAT_LINE)
+        print(FORMAT_LINE)
         print(anova_table)
         #print(cond_lm.model.data.orig_exog)
         print(cond_lm.summary())
@@ -176,15 +278,15 @@ def anova_interaction(data_lastDV):
     interaction_lm = ols(formula, data=factor_groups).fit()  # linear model
     print(interaction_lm.summary())
 
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
     print("- " + col_names[2] + " = " + col_names[0] + " * " + col_names[1] + " Interaction -")
     print(anova_lm(ols(formula_interaction, data=factor_groups).fit(), interaction_lm))
 
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
     print("- " + col_names[2] + " = " + col_names[0] + " + " + col_names[1] + " ANOVA -")
     print(anova_lm(ols(col_names[2] + " ~ C(" + col_names[0] + ")", data=factor_groups).fit(), ols(col_names[2] +" ~ C("+col_names[0]+") + C(" + col_names[1]+", Sum)", data=factor_groups).fit()))
 
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
     print("- " + col_names[2] + " = " + col_names[1] + " + " + col_names[0] + " ANOVA -")
     print(anova_lm(ols(col_names[2] + " ~ C(" + col_names[1] + ")", data=factor_groups).fit(), ols(col_names[2] +" ~ C("+col_names[0]+") + C(" + col_names[1]+", Sum)", data=factor_groups).fit()))
 
@@ -251,28 +353,34 @@ def compare_plot_instances(data_causal):
     plt.show()
 
 
-def descriptive_plot(data):
+def descriptive_plot(data_date_DV):
     """
     Print descriptive plot for give data frame
-    :param data: pandas dataframe we are exploring
+    :param data: dataframe, first column is a date last column is numerical outcome variable
     :return: None
     """
+    col_names = data_date_DV.columns.values.tolist()  # get the columns' names
+    data_date = col_names.pop(0)  # first item is the topic
+    outcome = col_names.pop()  # remove the last item in the list
+
+    helpers_by_date = data_date_DV[outcome]
+    helpers_by_date.index = data_date_DV[data_date]
+    helpers_by_date = helpers_by_date.cumsum()
+
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
-    helpers_by_date = data[utils.COL_NUMHELPERS]
-    helpers_by_date.index = data[utils.COL_DATE]
-    helpers_by_date = helpers_by_date.cumsum()
-    ax1 = helpers_by_date.plot(title="Num Helpers Selected Over Time")
+    ax1 = helpers_by_date.plot(title=outcome+" Selected Over Time")
     ax1.locator_params(axis='x', nbins=6)
-    ax1.set_xlabel("Date")
-    ax1.set_ylabel("Cumulative Helpers Selected")
+    ax1.set_xlabel(data_date)
+    ax1.set_ylabel("Cumulative "+outcome)
 
     ax2 = fig.add_subplot(122)
-    helpers_hist = data[utils.COL_NUMHELPERS]
-    ax2 = helpers_hist.plot(kind='hist', title="Histogram Num Helpers Selected", by=utils.COL_NUMHELPERS)
+    helpers_hist = data_date_DV[outcome]
+    ax2 = helpers_hist.plot(kind='hist', title="Histogram "+outcome, by=outcome)
     ax2.locator_params(axis='x', nbins=4)
-    ax2.set_xlabel("Number of Helpers Selected (0,1,2,3)")
+    ax2.set_xlabel(outcome+" (0,1,2,3)")
     ax2.set_ylabel("Num Instances")
+    fig.tight_layout()
     plt.show()
 
 def descriptive_stats(data_lastDV):
@@ -288,13 +396,13 @@ def descriptive_stats(data_lastDV):
     outcome = col_names.pop()  # remove the last item in the list
 
     # Summary of Number of Helpers Selected
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
     print("Descriptive statistics for: \'" + outcome+"\'")
     print(data_lastDV[outcome].describe())
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
 
     # Descriptive Statistics of conditions
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
     print("Descriptive statistics for: all conditions")
     df_conditions = data_lastDV[col_names]
     print(df_conditions.describe())
@@ -302,7 +410,7 @@ def descriptive_stats(data_lastDV):
 
     # Count/Descriptive Stats of individual conditions & mean num helps of each (2^5) conditions
     for cond in col_names:
-        print(utils.FORMAT_LINE)
+        print(FORMAT_LINE)
         print("Counts & Mean " + outcome + " for: \'" + cond)
         print(pd.concat([df_conditions.groupby(cond)[cond].count(), df_conditions.groupby(cond)[outcome].mean()], axis=1))
 
@@ -318,9 +426,9 @@ def one_stats(data_lastDV):
     topic_data = data_lastDV[[causal, outcome]]
 
     # descriptive stats
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
     print(topic_data[causal].describe())
-    print(utils.FORMAT_LINE)
+    print(FORMAT_LINE)
 
     fig = plt.figure()
     # bar chart of topics
@@ -341,9 +449,9 @@ def one_stats(data_lastDV):
     cond_lm = ols(outcome + " ~ C(" + causal + ")", data=topic_data).fit()
     anova_table = anova_lm(cond_lm)
 
-    print("\n"+utils.FORMAT_LINE)
-    print("One-Way ANOVA: " + causal + " -->" + outcome)
-    print(utils.FORMAT_LINE)
+    print("\n"+FORMAT_LINE)
+    print("One-Way ANOVA: " + causal + " --> " + outcome)
+    print(FORMAT_LINE)
     print(anova_table)
     #print(cond_lm.model.data.orig_exog)
     print(cond_lm.summary())
