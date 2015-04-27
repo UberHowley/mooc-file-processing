@@ -33,10 +33,12 @@ def run():
     conditions = [utils.COL_BADGE, utils.COL_IRRELEVANT, utils.COL_VOTING, utils.COL_USERNAME, utils.COL_ANONIMG]  # all our categorical IVs
     # TODO: decide if 'conditions' should include version or not
 
+    '''
     orig_data = helper_data[[utils.COL_NUMSTARS+utils.COL_SHOWN, utils.COL_WASSELECTED]].dropna()
     converted = orig_data[[utils.COL_NUMSTARS+utils.COL_SHOWN]].apply(lambda f: convert_badge_stars(f), axis=1)
     print(converted.tail())
     chi_square(converted)
+    '''
 
     user_input = input("> Print descriptive statistics? [y/n]: ")
     if is_yes(user_input):
@@ -360,7 +362,7 @@ def descriptive_plot(data_date_DV):
     :return: None
     """
     col_names = data_date_DV.columns.values.tolist()  # get the columns' names
-    data_date = col_names.pop(0)  # first item is the topic
+    data_date = col_names.pop(0)  # first item is the date
     outcome = col_names.pop()  # remove the last item in the list
 
     helpers_by_date = data_date_DV[outcome]
