@@ -16,6 +16,7 @@ class QHInstance(object):
     version = ""
     cond_badge = ""
     cond_irrelevant_sentence = ""
+    sentence_type = ""
     cond_voting = ""
     cond_anon_img = ""
     cond_user_id = ""
@@ -68,6 +69,15 @@ class QHInstance(object):
         self.timestamp = ts
         self.is_help_topic = hr
 
+        # want a second column that says exactly what kind of sentence type we're dealing with (rele, irrele, TA)
+        if self.version is utils.CONST_TA:
+            self.sentence_type = self.version
+        elif self.version is utils.CONST_STUDENT and self.cond_irrelevant_sentence is utils.VAL_IS:
+            self.sentence_type = "irrelevant"
+        elif self.version is utils.CONST_STUDENT and self.cond_irrelevant_sentence is utils.VAL_ISNOT:
+            self.sentence_type = "relevant"
+
+
     def __copy__(self):
         """
         Overwrite the copy operator (probably not necessary as these are all primitive types)
@@ -108,19 +118,8 @@ class QHInstance(object):
         :param delimiter: character to split each column
         :return: a string for printing this QHInstance, coordinating with the headers
         """
-        # want a second column that says exactly what kind of sentence type we're dealing with (rele, irrele, TA)
-        sentence_type = self.cond_irrelevant_sentence
-        if len(sentence_type) < 1:
-            sentence_type = self.cond_irrelevant_sentence  # do nothing, it's a duplicate with non-matching conditions
-        elif self.version is utils.CONST_TA:
-            sentence_type = self.version
-        elif self.version is utils.CONST_STUDENT and self.cond_irrelevant_sentence is utils.VAL_IS:
-            sentence_type = "irrelevant"
-        elif self.version is utils.CONST_STUDENT:
-            sentence_type = "relevant"
-
         line = str(self.user_id) + delimiter + str(self.instance_id) + delimiter + str(self.version) + delimiter
-        line += str(self.cond_badge) + delimiter + str(self.cond_irrelevant_sentence) + delimiter + sentence_type
+        line += str(self.cond_badge) + delimiter + str(self.cond_irrelevant_sentence) + delimiter + self.sentence_type
         line += delimiter + str(self.cond_voting)
         line += delimiter + str(self.cond_anon_img) + delimiter + str(self.cond_user_id) + delimiter + str(self.id_helper0)
         line += delimiter + str(self.id_helper1) + delimiter + str(self.id_helper2) + delimiter + str(self.num_helpers_selected)
