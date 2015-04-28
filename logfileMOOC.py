@@ -77,8 +77,10 @@ def run():
     userfile_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     userfile_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
-    helper_headers = utils.COL_HELPERID + CONST_DELIMITER + utils.COL_INSTANCEID
-    helper_headers += CONST_DELIMITER + utils.COL_NUMSTARS + CONST_DELIMITER + utils.COL_PREVHELPREQ + CONST_DELIMITER
+    helper_headers = utils.COL_HELPERID + CONST_DELIMITER
+    helper_headers += "helperName" + CONST_DELIMITER
+    helper_headers += utils.COL_INSTANCEID + CONST_DELIMITER
+    helper_headers += utils.COL_NUMSTARS + CONST_DELIMITER + utils.COL_PREVHELPREQ + CONST_DELIMITER
     helper_headers += utils.COL_NUMWEEKS+CONST_DELIMITER+utils.COL_TOPICMATCH+CONST_DELIMITER+utils.COL_RELSENTENCE
     helper_headers += CONST_DELIMITER+utils.COL_IRRELSENTENCE+CONST_DELIMITER+utils.COL_DATE+CONST_DELIMITER
     helper_headers += utils.COL_TIME + CONST_DELIMITER + utils.COL_WASSELECTED
@@ -157,9 +159,7 @@ def proc_user():
                 col_badge_shown = utils.VAL_IS
             else:
                 col_badge_shown = utils.VAL_ISNOT
-            if col_version is utils.CONST_TA:  # if this is the TA version, there is no relevant/irrelevant sentence
-                col_irrelevant_sentence = ""
-            elif int(col_irrelevant_sentence):
+            if int(col_irrelevant_sentence):
                 col_irrelevant_sentence = utils.VAL_IS
             else:
                 col_irrelevant_sentence = utils.VAL_ISNOT
@@ -232,6 +232,7 @@ def proc_helper():
 
             # Constructing the new helper logfile line
             line = col_helper_id + CONST_DELIMITER
+            line += col_helper_name + CONST_DELIMITER
             line += col_instance_id + CONST_DELIMITER
             line += col_badge_stars + CONST_DELIMITER + num_prev_inst + CONST_DELIMITER + col_num_weeks + CONST_DELIMITER
             line += col_topic_match + CONST_DELIMITER + col_rec_sentence + CONST_DELIMITER + col_irrel_sentence + CONST_DELIMITER
@@ -436,9 +437,16 @@ def remove_duplicates():
                 setattr(dup, 'num_helpers_selected', num_helpers)
         if selected_dup is None:
                 selected_dup = create_new_duplicate(instances_by_dupkey[duplicate_key])  # Clear out non-matching condition variables
+
+        # Clean the selected duplicate's message
+        message_title = ldat.clean_string(getattr(selected_dup, 'question_title', ''))
+        message_body = ldat.clean_string(getattr(selected_dup, 'question_body', ''))
+        setattr(selected_dup, 'question_title', message_title)
+        setattr(selected_dup, 'question_body', message_body)
         list_no_duplicates.append(selected_dup)  # Record selected_dup as our correct one
-        # Store this sentence, too (for topic modeling)
-        list_sentences.append(ldat.clean_string(" ".join([getattr(selected_dup, 'question_title', ''), ' '+getattr(selected_dup,'question_body','')])))
+
+        # Store the message for topic modeling
+        list_sentences.append(ldat.to_bow(message_title + ' ' + message_body))
 
         if len(instances_by_dupkey[duplicate_key]) > 1:  # counting our duplicates
             global count_repeat

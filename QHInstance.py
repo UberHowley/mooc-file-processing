@@ -70,12 +70,17 @@ class QHInstance(object):
         self.is_help_topic = hr
 
         # want a second column that says exactly what kind of sentence type we're dealing with (rele, irrele, TA)
-        if self.version is utils.CONST_TA:
+        '''
+        if self.version is utils.CONST_TA:  # TODO: if there was not an irrelevant sentence in TA version
+            self.cond_irrelevant_sentence = ""
             self.sentence_type = self.version
-        elif self.version is utils.CONST_STUDENT and self.cond_irrelevant_sentence is utils.VAL_IS:
-            self.sentence_type = "irrelevant"
+        '''
+        if self.version is utils.CONST_TA and self.cond_irrelevant_sentence is utils.VAL_ISNOT:  # TODO: if there was irrelevant sentences in TA version
+            self.sentence_type = utils.CONST_TA
         elif self.version is utils.CONST_STUDENT and self.cond_irrelevant_sentence is utils.VAL_ISNOT:
             self.sentence_type = "relevant"
+        else:
+            self.sentence_type = "irrelevant"
 
 
     def __copy__(self):

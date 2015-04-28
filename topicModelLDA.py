@@ -45,7 +45,7 @@ class LDAtopicModel(object):
         # process our stop words like all our words have been processed
         tokens_stop = []
         for word in get_stop_words('en'):
-            tokens_stop.extend(self.clean_string(word))
+            tokens_stop.extend(self.to_bow(word))
 
         tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
         # remove words that appear only once or are stop words
@@ -84,7 +84,7 @@ class LDAtopicModel(object):
         if self.lda is None:
             print("ERROR in lda_topic_model.predict_topic(): Need to create_lda() before predicting topics.")
         dict_lda = getattr(self.lda, 'id2word')
-        lda_vector = self.lda[dict_lda.doc2bow(self.clean_string(document))]
+        lda_vector = self.lda[dict_lda.doc2bow(self.to_bow(document))]
         return self.topic_names[max(lda_vector, key=lambda item: item[1])[0]]
         #print(max(lda_vector, key=lambda item: item[1])[0])
         #print(lda.print_topic(max(lda_vector, key=lambda item: item[1])[0]))  # prints the most prominent LDA topic
@@ -92,7 +92,7 @@ class LDAtopicModel(object):
     @staticmethod
     def clean_string(sentence):
         """
-        Clean the string by removing all punctuation and turning it into a bag of words
+        Clean the string by removing all punctuation and HTML
         http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
         :param sentence: the string potentially containing HTML and other non-alphanumerics
         :return: the string cleaned of all tags, undesirables as a list of strings (bag of words)
@@ -107,7 +107,16 @@ class LDAtopicModel(object):
         # TODO: How to handle URLs? 'httplightsidelabscomwhatresearch'
         # TODO: Contractions (i.e., can't) are okay, but possession isn't (i.e., Carolyn's)
         # TODO: Should removed characters be replaced with a space? Or no space (as is)?
-        texts = [word for word in cleaned.lower().split()]  # turning each word into an item in a list
+        return cleaned.lower()
+
+    @staticmethod
+    def to_bow(sentence):
+        """
+        Turn given string into a bag of words
+        :param sentence: the string to turn into a list
+        :return: the string  as a list of strings (bag of words)
+        """
+        texts = [word for word in sentence.split()]  # turning each word into an item in a list
         return texts
 
 class MLStripper(HTMLParser):
