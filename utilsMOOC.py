@@ -11,6 +11,7 @@ FILENAME_SELECTIONLOG = "selection"
 FILENAME_VOTELOG = "vote"
 FILENAME_USERLOG = "user"
 FILENAME_CLICKLOG = "click"
+FILE_SAMPLE = "_sample"  # for a sampling of our data
 EXTENSION_LOGFILE = ".log"
 EXTENSION_PROCESSED = ".csv"
 

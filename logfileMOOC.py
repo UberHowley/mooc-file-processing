@@ -6,6 +6,7 @@ __project__ = 'processMOOC'
 import utilsMOOC as utils
 import copy
 import datetime
+import random
 from collections import defaultdict
 from QHInstance import QHInstance
 from topicModelLDA import LDAtopicModel as ldat
@@ -77,6 +78,8 @@ def run():
     userfile_out = open(FILENAME_USERLOG+EXTENSION_PROCESSED,'w')
     userfile_out.write(QHInstance.get_headers(delimiter=CONST_DELIMITER)+'\n')
     helperfile_out = open(FILENAME_HELPERLOG+EXTENSION_PROCESSED, 'w')
+    helpersample_out = open(FILENAME_HELPERLOG+utils.FILE_SAMPLE+EXTENSION_PROCESSED, 'w')
+
     helper_headers = utils.COL_HELPERID + CONST_DELIMITER
     helper_headers += "helperName" + CONST_DELIMITER
     helper_headers += utils.COL_INSTANCEID + CONST_DELIMITER
@@ -88,6 +91,7 @@ def run():
     helper_headers += utils.COL_NUMWEEKS+utils.COL_SHOWN + CONST_DELIMITER + utils.COL_TOPICMATCH+utils.COL_SHOWN
     helper_headers += CONST_DELIMITER + QHInstance.get_headers(delimiter=CONST_DELIMITER)  # adding all instance info to end of each helper line
     helperfile_out.write(helper_headers+"\n")
+    helpersample_out.write(helper_headers+"\n")
 
     lda = ldat(utils.NUM_LDA_TOPICS, list_sentences)
     for qh_instance in list_no_duplicates:
@@ -98,12 +102,15 @@ def run():
         userfile_out.write(qh_instance.to_string(delimiter=CONST_DELIMITER)+'\n')
 
         # print associated helpers to the helper.log
-        for helper_line in dict_all_helpers[getattr(qh_instance, 'instance_id')]:
+        instance_helpers = dict_all_helpers[getattr(qh_instance, 'instance_id')]
+        helpersample_out.write(random.choice(instance_helpers)+CONST_DELIMITER + qh_instance.to_string(delimiter=CONST_DELIMITER)+'\n')  # write one randomly selected helper from this instance
+        for helper_line in instance_helpers:
             helper_line += CONST_DELIMITER + qh_instance.to_string(delimiter=CONST_DELIMITER)  # adding all instance info to end of helper lines
             helperfile_out.write(helper_line+'\n')
     userfile_out.close()
     helperfile_out.close()
-    print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+ " and " + FILENAME_HELPERLOG+EXTENSION_LOGFILE)
+    helpersample_out.close()
+    print("Done writing " + FILENAME_USERLOG+EXTENSION_LOGFILE+ " and " + FILENAME_HELPERLOG+EXTENSION_LOGFILE + " and " + FILENAME_HELPERLOG+utils.FILE_SAMPLE+EXTENSION_PROCESSED)
     print("\tNumber of repeats in "+FILENAME_USERLOG+EXTENSION_LOGFILE+": "+str(count_repeat)+"\n")
 
 def proc_user():
