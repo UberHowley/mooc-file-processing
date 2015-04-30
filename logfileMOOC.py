@@ -237,6 +237,11 @@ def proc_helper():
             col_date = col_timestamp.date()
             col_time = col_timestamp.time()
 
+            # handling num previous helper instances as none if in TA version
+            # it's always '100' in TA version, and this is meaningless
+            if str(getattr(instances_by_id[col_instance_id], "version", "")) == utils.CONST_TA:
+                num_prev_inst = ""
+
             # Constructing the new helper logfile line
             line = col_helper_id + CONST_DELIMITER
             line += col_helper_name + CONST_DELIMITER
