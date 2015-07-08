@@ -111,7 +111,9 @@ class LDAtopicModel(object):
         cleaned = no_html.replace("'s", removed_char)
 
         cleaned = re.sub(r'[^a-zA-Z\' ]+', removed_char, cleaned)  # Leaving in letters and apostrophes
-        # TODO: How to handle URLs? 'httplightsidelabscomwhatresearch'
+
+        # Handling URLs by splitting the 'http' off from the rest of the URL ('httplightsidelabscomwhatresearch')
+        cleaned = cleaned.replace("http", "http ")
 
         return cleaned.lower()
 
