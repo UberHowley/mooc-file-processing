@@ -2,6 +2,9 @@
 This project represents a Python script for processing several logfiles from a Massive Open Online Course.
 There were (1) various errors in the logging software (i.e., mysterious duplicates whose instance IDs were different, extra columns on some lines with a URL), (2) general cleaning (i.e., removing test entries, removing entries from our researchers, removing entries outside the course date range), and (3) more complicated post-processing that was necessary (i.e., cross-referencing values from one logfile into another). The code goes two steps further and also assigns an LDA topic to each discussion forum post and runs some basic statistics using pandas.
 
+## requirements
+Runs on Anaconda distribution with python 3+. Will need to install gensim and stop_words for text mining portion.
+
 ## running
 The main scripts are **logfileMOOC.py** and **statsMOOC.py**. Run logfileMOOC.py first, then statsMOOC.py. If you encounter errors you may want to check **utilsMOOC.py** to ensure all the constants are properly named.
 
